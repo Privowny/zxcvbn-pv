@@ -96,8 +96,8 @@ export class ZxcvbnMatching {
   omnimatch(aPassword) {
     const matchers = [
       this.dictionaryMatch,
-      this.reverse_dictionary_match,
-      this.l33t_match,
+      this.reverseDictionaryMatch,
+      this.l33tMatch,
       this.spatial_match,
       this.repeat_match,
       this.sequence_match,
@@ -151,8 +151,54 @@ export class ZxcvbnMatching {
 
   setUserInputDictionary: function(aOrderedList) {
     return RANKED_DICTIONARIES['user_inputs'] = buildRankedDict(aOrderedList.slice());
-  },
+  }
 
+  reverseDictionaryMatch(aPassword, aRankedDictionaries) {
+    if (!aRankedDictionaries)
+      aRankedDictionaries = this.RANKED_DICTIONARIES;
+
+    const reversedPassword = aPassword.split('').reverse().join('');
+    const matches = this.dictionaryMatch(reversedPassword, aRankedDictionaries);
+    matches.forEach((aMatch) => {
+      aMatch.token = aMatch.token.split('').reverse().join('');
+      aMatch.reversed = true;
+      aMatch.i = aPassword.length - 1 - aMatch.j;
+      aMatch.j = aPassword.length - 1 - aMatch.i;
+    });
+
+    return this.sorted(matches);
+  }
+
+  l33tMatch(aPassword, aRankedDictionaries, aL33tTable) {
+    if (!aRankedDictionaries)
+      aRankedDictionaries = this.RANKED_DICTIONARIES;
+
+    if (aL33tTable == null) {
+      aL33tTable = this.L33T_TABLE;
+    }
+
+    const matches = [];
+    const ref = this.enumerateL33tSubs(this.relevantL33tSubtable(aPassword, aL33tTable));
+    for (let i = 0; i < ref.length; i++) {
+      const sub = ref[i];
+      if (this.empty(sub)) {
+        break;
+      }
+
+      const subbedPassword = this.translate(aPassword, sub);
+      const newRef = this.dictionaryMatch(subbedPassword, aRankedDictionaries);
+      for (let j = 0; j < newRef.length; j++) {
+        const match = newRef[j];
+        const token = aPassword.slice(match.i, match.j + 1);
+        if (token.toLowerCase() === match.matched_word) {
+          continue;
+        }
+
+        const matchSub = {};
+        // XXX
+      }
+    }
+  }
 }
 
 
