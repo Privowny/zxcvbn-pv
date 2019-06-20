@@ -155,7 +155,7 @@ export class ZxcvbnMatching {
     return this.sorted(matches);
   }
 
-  setUserInputDictionary: function(aOrderedList) {
+  setUserInputDictionary(aOrderedList) {
     return RANKED_DICTIONARIES['user_inputs'] = buildRankedDict(aOrderedList.slice());
   }
 
