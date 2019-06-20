@@ -1,5 +1,5 @@
 
-export class ZxcvbnFeedback {
+class ZxcvbnFeedback {
 
   get kNO_SUGGESTION_SCORE_THRESHOLD() { return 2; }
 
@@ -34,7 +34,7 @@ export class ZxcvbnFeedback {
       return this.buildFeedback("", ["useFewWords", "noSymbolsNeeded"]);
     }
 
-    if (score > this.kNO_SUGGESTION_SCORE_THRESHOLD) {
+    if (aScore > this.kNO_SUGGESTION_SCORE_THRESHOLD) {
       return this.buildFeedback();
     }
 

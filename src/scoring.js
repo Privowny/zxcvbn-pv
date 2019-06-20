@@ -1,4 +1,4 @@
-export class ZxcvbnScoring {
+class ZxcvbnScoring {
 
   constructor(aLocale, aAdjacencyGraphs) {
     this.adjacencyGraphs = aAdjacencyGraphs;
@@ -104,9 +104,9 @@ export class ZxcvbnScoring {
         g:  (new Array(n)).fill({})
     };
 
-    function update(aMatch, aLength) {
+    const update = (aMatch, aLength) => {
       const k = aMatch.j;
-      const pi = this.estimate_guesses(aMatch, aPassword);
+      let pi = this.estimateGuesses(aMatch, aPassword);
       if (aLength > 1) {
         pi *= optimal.pi[aMatch.i - 1][aLength - 1];
       }
@@ -118,7 +118,7 @@ export class ZxcvbnScoring {
 
       const ref = optimal.g[k];
       for (let competing_l in ref) {
-        competing_g = ref[competing_l];
+        const competing_g = ref[competing_l];
         if (competing_l > aLength) {
           continue;
         }
@@ -160,7 +160,7 @@ export class ZxcvbnScoring {
       const optimal_match_sequence = [];
       let k = n - 1;
       let l = undefined;
-      const g = Infinity;
+      let g = Infinity;
       const ref = optimal.g[k];
       for (let candidate_l in ref) {
         const candidate_g = ref[candidate_l];
@@ -179,10 +179,11 @@ export class ZxcvbnScoring {
       return optimal_match_sequence;
     }
 
-    for (let k = 0; k <= n; k++) {
-      for (let match in matches_by_j[k]) {
+    for (let k = 0; k < n; k++) {
+      for (let w = 0; w < matches_by_j[k].length; w++) {
+        const match = matches_by_j[k][w];
         if (match.i > 0) {
-          for (let l in optimal.m[m.i - 1]) {
+          for (let l in optimal.m[match.i - 1]) {
             l = parseInt(l);
             update(match, l + 1);
           }
@@ -219,7 +220,7 @@ export class ZxcvbnScoring {
     let min_guesses = 1;
     if (aMatch.token.length < aPassword.length) {
       min_guesses = (aMatch.token.length == 1)
-                    ? this.MIN_SUBMATCH_GUESSES_SINGLE_CHAR;
+                    ? this.MIN_SUBMATCH_GUESSES_SINGLE_CHAR
                     : this.MIN_SUBMATCH_GUESSES_MULTI_CHAR;
     }
 
@@ -332,7 +333,7 @@ export class ZxcvbnScoring {
 
     if (aMatch.shifted_count) {
       const S = aMatch.shifted_count;
-      const U = aMatch.token.length - match.shifted_count
+      const U = aMatch.token.length - aMatch.shifted_count
       if (!S || !U) {
         guesses *= 2;
       } else {

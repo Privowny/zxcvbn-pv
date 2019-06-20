@@ -1,4 +1,4 @@
-export class ZxcvbnMatching {
+class ZxcvbnMatching {
 
   constructor(aFrequencyLists, aAdjacencyGraphs, aScoring) {
     this.frequencyLists = aFrequencyLists;
@@ -9,15 +9,15 @@ export class ZxcvbnMatching {
     const frequencyLists = this.frequencyLists.getListsForLocale(navigator.language, "en");
     for (name in frequencyLists) {
       const lst = frequencyLists[name].split(',');
-      RANKED_DICTIONARIES[name] = this.buildRankedDict(lst);
+      this.RANKED_DICTIONARIES[name] = this.buildRankedDict(lst);
     }
 
     this.GRAPHS = {
-      qwerty:     this.adjacency_graphs.qwerty,
-      dvorak:     this.adjacency_graphs.dvorak,
-      azerty:     this.adjacency_graphs.azerty,
-      keypad:     this.adjacency_graphs.keypad,
-      mac_keypad: this.adjacency_graphs.mac_keypad
+      qwerty:     this.adjacencyGraphs.qwerty,
+      dvorak:     this.adjacencyGraphs.dvorak,
+      azerty:     this.adjacencyGraphs.azerty,
+      keypad:     this.adjacencyGraphs.keypad,
+      mac_keypad: this.adjacencyGraphs.mac_keypad
     };
 
     this.ALPHABETICAL_GRAPHS = [ "qwerty", "azerty", "dvorak"];
@@ -156,7 +156,7 @@ export class ZxcvbnMatching {
   }
 
   setUserInputDictionary(aOrderedList) {
-    return RANKED_DICTIONARIES['user_inputs'] = buildRankedDict(aOrderedList.slice());
+    return this.RANKED_DICTIONARIES['user_inputs'] = this.buildRankedDict(aOrderedList.slice());
   }
 
   reverseDictionaryMatch(aPassword, aRankedDictionaries) {
@@ -659,7 +659,7 @@ export class ZxcvbnMatching {
       }
 
       return true;
-    });
+    }));
   }
 
   mapIntsToDmy(aInts) {
@@ -745,7 +745,7 @@ export class ZxcvbnMatching {
       }
     }
 
-    return null,
+    return null;
   }
 
   twoToFourDigitYear(aYear) {

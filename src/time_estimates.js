@@ -1,4 +1,4 @@
-export class ZxcvbnTimeEstimates {
+class ZxcvbnTimeEstimates {
 
   constructor(aLocale) {
     this.locale = aLocale;
@@ -28,19 +28,19 @@ export class ZxcvbnTimeEstimates {
   }
 
   guessesToScore(aGuesses) {
-    if (aGuesses < 1e3 + DELTA) {
+    if (aGuesses < 1e3 + this.DELTA) {
       return 0;
     }
 
-    if (aGuesses < 1e6 + DELTA) {
+    if (aGuesses < 1e6 + this.DELTA) {
       return 1;
     }
 
-    if (aGuesses < 1e8 + DELTA) {
+    if (aGuesses < 1e8 + this.DELTA) {
       return 2;
     }
 
-    if (aGuesses < 1e10 + DELTA) {
+    if (aGuesses < 1e10 + this.DELTA) {
       return 3;
     }
 
@@ -57,35 +57,36 @@ export class ZxcvbnTimeEstimates {
 
     let display_str = "";
 
-    if (seconds < 1) {
-      display_str = aLocale["lessThanASecond"];
+    if (aSeconds < 1) {
+      display_str = this.locale["lessThanASecond"];
     }
-    else if (seconds < minute) {
-      const v = Math.round(seconds);
-      display_str = v + " " + ((v > 1) ? aLocale["seconds"] : aLocale["second"]);
+    else if (aSeconds < minute) {
+      const v = Math.round(aSeconds);
+      display_str = v + " " + ((v > 1) ? this.locale["seconds"] : this.locale["second"]);
     }
-    else if (seconds < hour) {
-      const v = Math.round(seconds / minute);
-      display_str = v + " " + ((v > 1) ? aLocale["minutes"] : aLocale["minute"]);
+    else if (aSeconds < hour) {
+      const v = Math.round(aSeconds / minute);
+      display_str = v + " " + ((v > 1) ? this.locale["minutes"] : this.locale["minute"]);
     }
-    else if (seconds < day) {
-      const v = Math.round(seconds / hour);
-      display_str = v + " " + ((v > 1) ? aLocale["hours"] : aLocale["hour"]);
+    else if (aSeconds < day) {
+      const v = Math.round(aSeconds / hour);
+      display_str = v + " " + ((v > 1) ? this.locale["hours"] : this.locale["hour"]);
     }
-    else if (seconds < month) {
-      const v = Math.round(seconds / day);
-      display_str = v + " " + ((v > 1) ? aLocale["days"] : aLocale["day"]);
+    else if (aSeconds < month) {
+      const v = Math.round(aSeconds / day);
+      display_str = v + " " + ((v > 1) ? this.locale["days"] : this.locale["day"]);
     }
-    else if (seconds < year) {
-      const v = Math.round(seconds / month);
-      display_str = v + " " + ((v > 1) ? aLocale["months"] : aLocale["month"]);
+    else if (aSeconds < year) {
+      const v = Math.round(aSeconds / month);
+      display_str = v + " " + ((v > 1) ? this.locale["months"] : this.locale["month"]);
     }
-    else if (seconds < century) {
-      const v = Math.round(seconds / year);
-      display_str = v + " " + ((v > 1) ? aLocale["years"] : aLocale["year"]);
+    else if (aSeconds < century) {
+      const v = Math.round(aSeconds / year);
+      display_str = v + " " + ((v > 1) ? this.locale["years"] : this.locale["year"]);
     }
     else {
-      display_str = (v > 1) ? aLocale["centuries"] : aLocale["century"];
+      const v = Math.round(aSeconds / century);
+      display_str = (v > 1) ? this.locale["centuries"] : this.locale["century"];
     }
 
     return display_str;

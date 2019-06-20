@@ -1,4 +1,4 @@
-export class ZxcvnFrequencyLists {
+class ZxcvnFrequencyLists {
 
   get defaultLocale() { return "en"; }
 
@@ -31,7 +31,7 @@ export class ZxcvnFrequencyLists {
     }
 
     const locales = [ aLocale ];
-    if (aAddDefaultLocale && this.defaultLocale in this.lists))
+    if (aAddDefaultLocale && this.defaultLocale in this.lists)
       locales.unshift(this.defaultLocale);
 
     const rv = {};

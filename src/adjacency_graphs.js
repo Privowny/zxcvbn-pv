@@ -1,6 +1,6 @@
 
 
-export class ZxcvbnAdjacencyGraphs {
+class ZxcvbnAdjacencyGraphs {
   get qwerty() {
     return {
       "!": ["`~", null, null, "2@", "qQ", null],
