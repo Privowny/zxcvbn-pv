@@ -691,36 +691,72 @@ export class ZxcvbnMatching {
       return;
     }
 
-    const possible_year_splits = [
-      [ints[2], ints.slice(0, 2)],
-      [ints[0], ints.slice(1, 3)]
+    const possibleYearSplits = [
+      [aInts[2], aInts.slice(0, 2)],
+      [aInts[0], aInts.slice(1, 3)]
     ];
+
+    for (let i = 0; i < possibleYearSplits.length; i++) {
+      const y = possibleYearSplits[i][0];
+      const rest = possibleYearSplits[i][1];
+
+      if (y >= this.DATE_MIN_YEAR && y <= this.DATE_MAX_YEAR) {
+        const dm = this.mapIntsToDm(rest);
+        if (dm != null) {
+          return {
+            year:  y,
+            month: dm.month,
+            day:   dm.day
+          };
+        } else {
+          return;
+        }
+      }
+    }
+
+    for (let i = 0; i < possibleYearSplits.length; i++) {
+      const y = possibleYearSplits[i][0];
+      const rest = possibleYearSplits[i][1];
+
+      const dm = this.mapIntsToDm(rest);
+      if (dm != null) {
+        y = this.twoToFourDigitYear(y);
+        return {
+          year:  y,
+          month: dm.month,
+          day:   dm.day
+        };
+      }
+    }
+  }
+
+  mapIntsToDm(aInts) {
+    const ref = [ aInts, Array.from(aInts).reverse() ];
+    for (let i = 0; i < ref.length; i++) {
+      const d = ref[i][0];
+      const m = ref[i][1];
+
+      if ((d >= 1 && d <= 31)
+          && (m >= 1 && m <= 12)) {
+        return {
+          day:   d,
+          month: m
+        };
+      }
+    }
+
+    return null,
+  }
+
+  twoToFourDigitYear(aYear) {
+    if (aYear > 99) {
+      return aYear;
+    }
+
+    if (aYear > 50) {
+      return aYear + 1900;
+    }
+
+    return aYear + 2000;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
