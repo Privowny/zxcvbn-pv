@@ -240,7 +240,7 @@ export class ZxcvbnMatching {
       for (let p = 0; p < subs.length; p++) {
         const sub = subs[p];
         if (sub in passwordChars) {
-          relevantSubs.push(sub):
+          relevantSubs.push(sub);
         }
       }
 
@@ -349,7 +349,7 @@ export class ZxcvbnMatching {
 
   spatialMatchHelper(aPassword, aGraph, aGraphName) {
     const matches = [];
-    let adj, adjacents, curChar, curDirection, found, foundDirection, i = 0, j, lastDirection, len1, matches, o, prevChar, shiftedCount, turns;
+    let adj, adjacents, curChar, curDirection, found, foundDirection, i = 0, j, lastDirection, len1, o, prevChar, shiftedCount, turns;
 
     while (i < aPassword.length - 1) {
       j = i + 1;
@@ -540,6 +540,161 @@ export class ZxcvbnMatching {
     }
 
     return this.sorted(matches);
+  }
+
+  dateMatch(aPassword) {
+    const matches = [];
+    const maybeDateNoSeparator = /^\d{4,8}$/;
+    const maybeDateWithSeparator = /^(\d{1,4})([\s\/\\_.-])(\d{1,2})\2(\d{1,4})$/;
+
+    for (let i = 0; i <= aPassword.length - 4; i++) {
+      for (let j = i + 3; j <= i +7; j++) {
+        if (j >= aPassword.length) {
+          break;
+        }
+
+        const token = aPassword.slice(i, J + 1);
+        if (!maybeDateNoSeparator.exec(token)) {
+          continue;
+        }
+
+        const candidates = [];
+        const dateSplit = this.DATE_SPLITS[token.length];
+        for (let q = 0; q < dateSplit.length; q++) {
+          const k = dateSplit[q][0];
+          const l = dateSplit[q][1];
+
+          const dmy = this.mapIntsToDmy([
+            parseInt(token.slice(0, k)),
+            parseInt(token.slice(k, l)),
+            parseInt(token.slice(l))
+          ]);
+
+          if (dmy != null) {
+            candidates.push(dmy);
+          }
+        }
+
+        if (!(candidates.length > 0)) {
+          continue;
+        }
+
+        let bestCandidate = candidates[0];
+
+        function metric(aCandidate) {
+          return Math.abs(aCandidate.year - this.scoring.REFERENCE_YEAR);
+        }
+
+        let minDistance = metric(candidates[0]);
+        const otherCandidates = candidates.splice(1);
+
+        for (let q = 0; q < otherCandidates.length; q++) {
+          const candidate = otherCandidates[q];
+          const distance = metric(candidate);
+          if (distance < minDistance) {
+            bestCandidate = candidate[0];
+            minDistance   = candidate[1];
+          }
+        }
+
+        matches.push({
+          pattern:   "date",
+          token:     token,
+          i:         i,
+          j:         j,
+          separator: '',
+          year:      bestCandidate.year,
+          month:     bestCandidate.month,
+          day:       bestCandidate.day
+        });
+      }
+    }
+
+    for (let i = 0; i <= aPassword.length - 6; i++) {
+      for (let j = i + 5; j <= i + 9; j++) {
+        if (j >= aPassword.length) {
+          break;
+        }
+
+        const token = aPassword.splice(i, j + 1);
+        const match = maybeDateWithSeparator.exec(token);
+        if (!match) {
+          continue;
+        }
+
+        const dmy = this.mapIntsToDmy([
+          parseInt(match[1]),
+          parseInt(match[3]),
+          parseInt(match[4])
+        ]);
+
+        if (dmy == null) {
+          continue;
+        }
+
+        matches.push({
+          pattern:   "date",
+          token:     token,
+          i:         i,
+          j:         j,
+          separator: match[2],
+          year:      dmy.year,
+          month:     dmy.month,
+          day:       dmy.day
+        });
+      }
+    }
+
+    return this.sorted(matches.filter((aMatch) => {
+      for (let i = 0; i < matches.length; i++) {
+        const otherMatch = matches[u];
+        if (match == otherMatch) {
+          continue;
+        }
+
+        if (otherMatch.i <= aMatch.i
+            && otherMatch.j >= aMatch.j) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  mapIntsToDmy(aInts) {
+    if (aInts[1] > 31 || aInts[1] <= 0) {
+      return;
+    }
+
+    let over12 = 0, over31 = 0, under1 = 0;
+    for (let i = 0; i < aInts.length; i++) {
+      const intValue = aInts[i];
+
+      if (intValue > this.DATE_MAX_YEAR
+          || (intValue > 99
+              && intValue < this.DATE_MIN_YEAR)) {
+        return;
+      }
+
+      if (intValue > 31)
+        over31++;
+      if (intValue > 12)
+        over12++;
+      if (intValue <= 0)
+        under1++;
+    }
+
+    if (over31 >= 2
+        || over12 == 3
+        || under1 >= 2) {
+      return;
+    }
+
+    const possible_year_splits = [
+      [ints[2], ints.slice(0, 2)],
+      [ints[0], ints.slice(1, 3)]
+    ];
   }
 }
 
