@@ -20,6 +20,8 @@ export class ZxcvbnMatching {
       mac_keypad: this.adjacency_graphs.mac_keypad
     };
 
+    this.ALPHABETICAL_GRAPHS = [ "qwerty", "azerty", "dvorak"];
+
     this.L33T_TABLE = {
       a: ['4', '@'],
       b: ['8'],
@@ -49,6 +51,10 @@ export class ZxcvbnMatching {
       7: [[1, 3], [2, 3], [4, 5], [4, 6]],
       8: [[2, 4], [4, 6]]
     };
+
+    this.SHIFTED_RX = /[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]/;
+
+    this.MAX_DELTA = 5;
   }
 
   buildRankedDict(aOrderedList) {
@@ -98,11 +104,11 @@ export class ZxcvbnMatching {
       this.dictionaryMatch,
       this.reverseDictionaryMatch,
       this.l33tMatch,
-      this.spatial_match,
-      this.repeat_match,
-      this.sequence_match,
-      this.regex_match,
-      this.date_match
+      this.spatialMatch,
+      this.repeatMatch,
+      this.sequenceMatch,
+      this.regexMatch,
+      this.dateMatch
     ];
 
     const matches = [];
@@ -195,9 +201,345 @@ export class ZxcvbnMatching {
         }
 
         const matchSub = {};
-        // XXX
+        for (let subbedChar in sub) {
+          const chr = sub[subbedChar];
+          if (token.indexOf(subbedChar) != -1) {
+            matchSub[subbedChar] = chr;
+          }
+        }
+
+        match.l33t = true;
+        match.token = token;
+        match.sub = matchSub;
+        let subDisplay = [];
+        for (let k in matchSub) {
+          subDisplay.push(k + " -> " + matchSub[k]);
+        }
+
+        match.sub_display = subDisplay.join(", ");
+        matches.push(match);
       }
     }
+
+    return this.sorted(matches.filter(function(aMatch) {
+      return aMatch.token.length > 1;
+    }));
+  }
+
+  relevantL33tSubtable(aPassword, aTable) {
+    const passwordChars = {};
+    for (let i = 0; i < aPassword.length; i++) {
+      passwordChars[aPassword[i]] = true;
+    }
+
+    const subtable = {};
+    for (let letter in aTable) {
+      const subs = aTable[letter];
+      const relevantSubs = [];
+
+      for (let p = 0; p < subs.length; p++) {
+        const sub = subs[p];
+        if (sub in passwordChars) {
+          relevantSubs.push(sub):
+        }
+      }
+
+      if (relevantSubs.length) {
+        subtable[letter] = relevantSubs;
+      }
+    }
+
+    return subtable;
+  }
+
+  enumerateL33tSubs(aTable) {
+    const keys = Object.keys(aTable);
+    const subs = [[]];
+
+    function dedup(aSubs) {
+      const deduped = [];
+      const members = {};
+
+      for (let i = 0; i < aSubs.length; i++) {
+        const sub = aSubs[i];
+        const assoc = Object.entries(sub).sort();
+
+        const labelChunks = [];
+        assoc.forEach((aEntry) => { labelChunks.push(aEntry[0] + "," + aEntry[1]); });
+        const label = labelChunks.join("-");
+
+        if (!(label in members)) {
+          members[label] = true;
+          deduped.push(sub);
+        }
+      }
+
+      return deduped;
+    }
+
+    function helper(aKeys) {
+      if (!aKeys.length)
+        return;
+
+      const firstKey = aKeys[0];
+      const restKeys = aKeys.slice(1);
+      const nextSubs = [];
+      const ref = aTable[firstKey];
+
+      for (let i = 0; i <= ref.length; i++) {
+        const l33tChar = ref[i];
+        for (let j = 0; j < subs.length; j++) {
+          const sub = subs[j];
+          let dupL33tIndex = -1;
+          for (let k = 0; k < sub.length; k++) {
+            if (sub[k][0] == l33tChar) {
+              dupL33tIndex = i;
+              break;
+            }
+          }
+
+          if (dupL33tIndex == -1) {
+            next_subs.push( sub.concat([[l33tChar, firstKey]]) );
+          } else {
+            let sub_alternative = sub.slice(0);
+            sub_alternative.splice(dupL33tIndex, 1);
+            sub_alternative.push([l33tChar, firstKey]);
+            next_subs.push(sub);
+            next_subs.push(sub_alternative);
+          }
+        }
+      }
+
+      subs = dedup(next_subs);
+      return helper(restKeys);
+    }
+
+    helper(keys);
+
+    const subDicts = [];
+    for (let i = 0; i < subs.length; i++) {
+      const sub = subs[i];
+      const subDict = {};
+      for (let j = 0; j < sub.length; j++) {
+        const l33tChar = sub[j][0];
+        const char = sub[j][1];
+        subDict[l33tChar] = char;
+      }
+
+      subDicts.push(subDict);
+    }
+
+    return subDicts;
+  }
+
+  spatialMatch(aPassword, aGraphs) {
+    if (!aGraphs)
+      aGraphs = this.GRAPHS;
+
+    const matches = [];
+    for (let graphName in aGraphs) {
+      this.extend(
+        matches,
+        this.spatialMatchHelper(aPassword, aGraphs[graphName], graphName)
+      );
+    }
+
+    return this.sorted(matches);
+  }
+
+  spatialMatchHelper(aPassword, aGraph, aGraphName) {
+    const matches = [];
+    let adj, adjacents, curChar, curDirection, found, foundDirection, i = 0, j, lastDirection, len1, matches, o, prevChar, shiftedCount, turns;
+
+    while (i < aPassword.length - 1) {
+      j = i + 1;
+      lastDirection = null;
+      turns = 0;
+
+      shiftedCount =  (this.ALPHABETICAL_GRAPHS.includes(aGraphName)
+                       && this.SHIFTED_RX.exec(aPassword.charAt(i)))
+                      ? 1
+                      : 0;
+
+      while (true) {
+        prevChar = aPassword.charAt(j - 1);
+        found = false;
+        foundDirection = -1;
+        curDirection = -1;
+        adjacents = aGraph[prevChar] || [];
+        if (j < aPassword.length) {
+          curChar = aPassword.charAt(j);
+          for (o = 0, len1 = adjacents.length; o < len1; o++) {
+            adj = adjacents[o];
+            curDirection += 1;
+            if (adj && adj.indexOf(curChar) !== -1) {
+              found = true;
+              foundDirection = curDirection;
+              if (adj.indexOf(curChar) === 1) {
+                shiftedCount += 1;
+              }
+              if (lastDirection !== foundDirection) {
+                turns += 1;
+                lastDirection = foundDirection;
+              }
+              break;
+            }
+          }
+        }
+        if (found) {
+          j += 1;
+        } else {
+          if (j - i > 2) {
+            matches.push({
+              pattern:       "spatial",
+              i:             i,
+              j:             j - 1,
+              token:         aPassword.slice(i, j),
+              graph:         aGraphName,
+              turns:         turns,
+              shifted_count: shiftedCount
+            });
+          }
+          i = j;
+          break;
+        }
+      }
+    }
+    return matches;
+  }
+
+  repeatMatch(aPassword) {
+    const matches = [];
+    const greedy = /(.+)\1+/g;
+    const lazy = /(.+?)\1+/g;
+    const lazyAnchored = /^(.+?)\1+$/;
+    let lastIndex = 0;
+
+    while (lastIndew < aPassword.length) {
+      lazy.lastIndex = lastIndex;
+      greedy.lastIndex = lastIndex;
+
+      const greedyMatch = greedy.match(aPassword);
+      const lazyMatch   = lazy.exec(aPassword);
+
+      if (!greedyMatch) {
+        break;
+      }
+
+      let baseToken;
+      if (greedyMatch[0].length > lazyMatch[0].length) {
+        match = greedyMatch;
+        baseToken = lazyAnchored.exec(match[0])[1];
+      } else {
+        match = lazyMatch;
+        baseToken = match[1];
+      }
+
+      const baseAnalysis = this.scoring.mostGuessableMatchSequence(baseToken, this.omnimatch(baseToken));
+      const baseMatches = baseAnalysis.sequence;
+      const baseGuesses = baseAnalysis.guesses;
+
+      matches.push({
+        pattern:      "repeat",
+        i:            match.index,
+        j:            match.index + match[0].length - 1,
+        token:        match[0],
+        base_token:   baseToken,
+        base_guesses: baseGuesses,
+        base_matches: baseMatches,
+        repeat_count: match[0].length / baseToken.length
+      });
+    }
+  }
+
+  sequenceMatch(aPassword) {
+    if (aPassword.length === 1) {
+      return [];
+    }
+
+    function update(i, j, delta) {
+      const ref = Math.abs(delta);
+
+      if (j - i > 1 || ref === 1) {
+        if ((0 < ref && ref <= this.MAX_DELTA)) {
+          const token = password.slice(i, +j + 1 || 9e9);
+          let sequenceName, sequenceSpace;
+
+          if (/^[a-z]+$/.test(token)) {
+            sequenceName = 'lower';
+            sequenceSpace = 26;
+          } else if (/^[A-Z]+$/.test(token)) {
+            sequenceName = 'upper';
+            sequenceSpace = 26;
+          } else if (/^\d+$/.test(token)) {
+            sequenceName = 'digits';
+            sequenceSpace = 10;
+          } else {
+            sequenceSpace = 'unicode';
+            sequenceSpace = 26;
+          }
+
+          return result.push({
+            pattern:        "sequence",
+            i:              i,
+            j:              j,
+            token:          aPassword.slice(i, +j + 1 || 9e9),
+            sequence_name:  sequenceSpace,
+            sequence_space: sequenceSpace,
+            ascending:      delta > 0
+          });
+        }
+      }
+    }
+
+    const result = [];
+    let i = 0;
+    let lastDelta = null;
+
+    for (let k = 0; k < aPassword.length; k++) {
+      const delta = aPassword.charCodeAt(k) - aPassword.charCodeAt(k - 1);
+      if (lastDelta == null) {
+        lastDelta = delta;
+      }
+
+      if (delta === lastDelta) {
+        continue;
+      }
+
+      const j = k - 1;
+      update(i, j, lastDelta);
+      i = j;
+      lastDelta = delta;
+    }
+
+    update(i, aPassword.length - 1, lastDelta);
+    return result;
+  }
+
+  regexMatch(aPassword, aRegExps) {
+    if (aRegExps == null) {
+      aRegExps = this.REGEXEN;
+    }
+
+    const matches = [];
+
+    for (let name in aRegExps) {
+      const r = aRegExps[name];
+      r.lastIndex = 0;
+      while (match = r.exec(aPassword)) {
+        const token = match[0];
+        matches.push({
+          pattern:    "regex",
+          token:       token,
+          i:           match.index,
+          j:           match.index + match[0].length - 1,
+          regex_name:  name,
+          regex_match: match
+        });
+      }
+    }
+
+    return this.sorted(matches);
   }
 }
 
