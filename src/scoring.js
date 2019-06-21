@@ -1,5 +1,14 @@
+/*
+ * Scoring class for zxcvbn-pv
+ */
 class ZxcvbnScoring {
 
+  /*
+   * @constructor
+   *
+   * @param {string} aLocale - the identifier of the locale to use
+   * @param {ZxcvbnAdjacencyGraphs} aAdjacencyGraphs
+   */
   constructor(aLocale, aAdjacencyGraphs) {
     this.adjacencyGraphs = aAdjacencyGraphs;
 
@@ -22,8 +31,8 @@ class ZxcvbnScoring {
     }
     this.KEYBOARD_AVERAGE_DEGREE     = this.calcAverageDegree(this.adjacencyGraphs[keyboard]);
     this.KEYPAD_AVERAGE_DEGREE       = this.calcAverageDegree(this.adjacencyGraphs.keypad);
-    this.KEYBOARD_STARTING_POSITIONS = Object.keys(this.adjacencyGraphs[keyboard]);
-    this.KEYPAD_STARTING_POSITIONS   = Object.keys(this.adjacencyGraphs.keypad);
+    this.KEYBOARD_STARTING_POSITIONS = Object.values(this.adjacencyGraphs[keyboard]).length;
+    this.KEYPAD_STARTING_POSITIONS   = Object.values(this.adjacencyGraphs.keypad).length;
 
     this.START_UPPER = /^[A-Z][^A-Z]+$/ ;
     this.END_UPPER   = /^[^A-Z]+[A-Z]$/ ;
@@ -31,29 +40,30 @@ class ZxcvbnScoring {
     this.ALL_LOWER   = /^[^A-Z]+$/ ;
   }
 
-  buildAverageFromNeighbors(aNeighbors) {
-    const len = aNeighbors.length;
-    const results = [];
-    for (let index = 0; index < len; index++) {
-      let n = aNeighbors[index];
-      if (n) {
-        results.push(n);
-      }
-    }
-    return results;
-  }
-
+  // on qwerty, 'g' has degree 6, being adjacent to 'ftyhbv'. '\' has degree 1.
+  // this calculates the average over all keys.
+  /*
+   * @param {Object} aGraph - an ajacency graph
+   * @returns {number}
+   */
   calcAverageDegree(aGraph) {
     let average = 0;
-    for (let key in aGraph) {
-      const neighbors = aGraph[key];
-      average += this.buildAverageFromNeighbors(neighbors).length;
-    }
+    Object.values(aGraph).forEach((neighbors) => {
+      average += neighbors.filter(v => v).length;
+    });
 
     return average / Object.keys(aGraph).length;
   }
 
+  /*
+   * Binomial coefficients
+   *
+   * @param {number} n
+   * @param {number} k
+   * @returns {number}
+   */
   nCk(n, k) {
+    // http://blog.plover.com/math/choose.html
     if (k > n) {
       return 0;
     }
@@ -71,7 +81,14 @@ class ZxcvbnScoring {
     return r;
   }
 
+  /*
+   * Ugly factorial computation
+   *
+   * @param {number} n
+   * @returns {number}
+   */
   factorial(n) {
+    // unoptimized, called only on small n
     if (n < 2)
       return 1;
 
@@ -83,15 +100,54 @@ class ZxcvbnScoring {
     return rv;
   }
 
+  // ------------------------------------------------------------------------------
+  // search --- most guessable match sequence -------------------------------------
+  // ------------------------------------------------------------------------------
+  //
+  // takes a sequence of overlapping matches, returns the non-overlapping sequence with
+  // minimum guesses. the following is a O(l_max * (n + m)) dynamic programming algorithm
+  // for a length-n password with m candidate matches. l_max is the maximum optimal
+  // sequence length spanning each prefix of the password. In practice it rarely exceeds 5 and the
+  // search terminates rapidly.
+  //
+  // the optimal "minimum guesses" sequence is here defined to be the sequence that
+  // minimizes the following function:
+  //
+  //    g = l! * Product(m.guesses for m in sequence) + D^(l - 1)
+  //
+  // where l is the length of the sequence.
+  //
+  // the factorial term is the number of ways to order l patterns.
+  //
+  // the D^(l-1) term is another length penalty, roughly capturing the idea that an
+  // attacker will try lower-length sequences first before trying length-l sequences.
+  //
+  // for example, consider a sequence that is date-repeat-dictionary.
+  //  - an attacker would need to try other date-repeat-dictionary combinations,
+  //    hence the product term.
+  //  - an attacker would need to try repeat-date-dictionary, dictionary-repeat-date,
+  //    ..., hence the factorial term.
+  //  - an attacker would also likely try length-1 (dictionary) and length-2 (dictionary-date)
+  //    sequences before length-3. assuming at minimum D guesses per pattern type,
+  //    D^(l-1) approximates Sum(D^i for i in [1..l-1]
+  //
+  // ------------------------------------------------------------------------------
+  /*
+   * @param {string} aPassword - password
+   * @param {Array} aMatches - sequence of overlapping matches
+   * @param {Array} aExcludeAdditive
+   */
   mostGuessableMatchSequence(aPassword, aMatches, aExcludeAdditive) {
     const n = aPassword.length;
 
+    // partition matches into sublists according to ending index j
     const matches_by_j = new Array(n).fill([]);
 
     aMatches.forEach((aMatch) => {
       matches_by_j[aMatch.j].push(aMatch);
     });
 
+    // small detail: for deterministic output, sort each sublist by i.
     matches_by_j.forEach((aLst) => {
       aLst.sort(function(m1, m2) {
         return m1.i - m2.i;
@@ -99,23 +155,39 @@ class ZxcvbnScoring {
     });
 
     const optimal = {
+        // optimal.m[k][l] holds final match in the best length-l match sequence covering the
+        // password prefix up to k, inclusive.
+        // if there is no length-l sequence that scores better (fewer guesses) than
+        // a shorter match sequence spanning the same prefix, optimal.m[k][l] is undefined.
         m:  (new Array(n)).fill({}),
+        // same structure as optimal.m -- holds the product term Prod(m.guesses for m in sequence).
+        // optimal.pi allows for fast (non-looping) updates to the minimization function.
         pi: (new Array(n)).fill({}),
+        // same structure as optimal.m -- holds the overall metric.
         g:  (new Array(n)).fill({})
     };
 
+    // helper: considers whether a length-l sequence ending at match m is better (fewer guesses)
+    // than previously encountered sequences, updating state if so.
     const update = (aMatch, aLength) => {
       const k = aMatch.j;
       let pi = this.estimateGuesses(aMatch, aPassword);
       if (aLength > 1) {
+        // we're considering a length-l sequence ending with match m:
+        // obtain the product term in the minimization function by multiplying m's guesses
+        // by the product of the length-(l-1) sequence ending just before m, at m.i - 1.
         pi *= optimal.pi[aMatch.i - 1][aLength - 1];
       }
 
+      // calculate the minimization func
       let g = this.factorial(aLength) * pi;
       if (!aExcludeAdditive) {
         g += Math.pow(this.MIN_GUESSES_BEFORE_GROWING_SEQUENCE, aLength - 1);
       }
 
+      // update state if new best.
+      // first see if any competing sequences covering this prefix, with l or fewer matches,
+      // fare better than this sequence. if so, skip it and return.
       const ref = optimal.g[k];
       for (let competing_l in ref) {
         const competing_g = ref[competing_l];
@@ -127,27 +199,44 @@ class ZxcvbnScoring {
         }
       }
 
+      // this sequence might be part of the final optimal sequence.
       optimal.g[k][aLength]  = g;
       optimal.m[k][aLength]  = aMatch;
       optimal.pi[k][aLength] = pi;
     }
 
-    function bruteforceUpdate(k) {
+    // helper: evaluate bruteforce matches ending at k.
+    const bruteforceUpdate = (k) => {
+      // see if a single bruteforce match spanning the k-prefix is optimal.
       let m = makeBruteforceMatch(0, k);
       update(m, 1);
-      const results = [];
-      for (let i = 1; i <= k; i++) {
-        m = makeBruteforceMatch(i, k);
-        for (let l in optimal.m[i - 1]) {
-          const last_m = optimal.m[i - 1][l];
-          if (last_m.pattern == "bruteforce")
-            continue;
-          update(m, parseInt(l) + 1);
+
+      for (let i = 0; i < k; i++) {
+        // generate k bruteforce matches, spanning from (i=1, j=k) up to (i=k, j=k).
+        // see if adding these new matches to any of the sequences in optimal[i-1]
+        // leads to new bests.
+        const match = makeBruteforceMatch(i, k);
+        const ref = optimal.m[i - 1];
+        if (ref) {
+          Object.entries(ref).forEach((aValue) => {
+            // corner: an optimal sequence will never have two adjacent bruteforce matches.
+            // it is strictly better to have a single bruteforce match spanning the same region:
+            // same contribution to the guess product with a lower length.
+            // --> safe to skip those cases.
+            if (aValue[1].pattern == 'bruteforce') {
+              return;
+            }
+
+            // try adding m to this length-l sequence.
+            const l = parseInt(aValue[0]);
+            update(m, l + 1);
+          });
         }
       }
     }
 
-    function makeBruteforceMatch(i, j) {
+    // helper: make bruteforce match objects spanning i to j, inclusive.
+    const makeBruteforceMatch = (i, j) => {
       return {
         pattern: "bruteforce",
         token: aPassword.slice(i, j + 1),
@@ -156,9 +245,13 @@ class ZxcvbnScoring {
       };
     }
 
-    function unwind(n) {
+    // helper: step backwards through optimal.m starting at the end,
+    // constructing the final optimal match sequence.
+    const unwind = (n) => {
       const optimal_match_sequence = [];
       let k = n - 1;
+
+      // find the final best sequence length and score
       let l = undefined;
       let g = Infinity;
       const ref = optimal.g[k];
@@ -179,9 +272,9 @@ class ZxcvbnScoring {
       return optimal_match_sequence;
     }
 
-    for (let k = 0; k < n; k++) {
-      for (let w = 0; w < matches_by_j[k].length; w++) {
-        const match = matches_by_j[k][w];
+    for (let i = 0; i < n; i++) {
+      for (let w = 0; w < matches_by_j[i].length; w++) {
+        const match = matches_by_j[i][w];
         if (match.i > 0) {
           for (let l in optimal.m[match.i - 1]) {
             l = parseInt(l);
@@ -191,32 +284,44 @@ class ZxcvbnScoring {
           update(match, 1);
         }
       }
-      bruteforceUpdate(k)
+      bruteforceUpdate(i)
     }
 
-    const optimal_match_sequence = unwind(n);
-    const optimal_l = optimal_match_sequence.length;
+    const optimalMatchSequence = unwind(n);
+    const optimal_l = optimalMatchSequence.length;
 
     let guesses = 0;
     if (!aPassword.length) {
+      // corner: empty password
       guesses = 1;
     } else {
       guesses = optimal.g[n - 1][optimal_l];
     }
 
+    // final result object
     return {
-      password: aPassword,
-      guesses: guesses,
-      guessesLog10: Math.log10(guesses),
-      sequence: optimal_match_sequence
+      password:      aPassword,
+      guesses:       guesses,
+      guesses_log10: Math.log10(guesses),
+      sequence:      optimalMatchSequence
     };
   }
 
+  // ------------------------------------------------------------------------------
+  // guess estimation -- one function per match pattern ---------------------------
+  // ------------------------------------------------------------------------------
+  /*
+   * @param {Object} aMatch
+   * @param {string} aPassword
+   * @returns {number}
+   */
   estimateGuesses(aMatch, aPassword) {
     if (aMatch.guesses != null) {
+      // a match's guess estimate doesn't change. cache it.
       return aMatch.guesses;
     }
 
+    // 
     let min_guesses = 1;
     if (aMatch.token.length < aPassword.length) {
       min_guesses = (aMatch.token.length == 1)
@@ -234,60 +339,88 @@ class ZxcvbnScoring {
         date:       this.dateGuesses
     };
 
-    const guesses = estimation_functions[aMatch.pattern].call(this, aMatch);
+    try {
+      const guesses = estimation_functions[aMatch.pattern].call(this, aMatch);
 
-    aMatch.guesses = Math.max(guesses, min_guesses);
-    aMatch.guesses_log10 = Math.log10(aMatch.guesses);
+      aMatch.guesses = Math.max(guesses, min_guesses);
+      aMatch.guesses_log10 = Math.log10(aMatch.guesses);
+    } catch(e) {
+      console.error(e);
+    }
     return aMatch.guesses;
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   bruteforceGuesses(aMatch) {
     let guesses = Math.pow(this.BRUTEFORCE_CARDINALITY, aMatch.token.length);
     if (guesses === Number.POSITIVE_INFINITY) {
       guesses = Number.MAX_VALUE;
     }
 
+    // small detail: make bruteforce matches at minimum one guess bigger than smallest allowed
+    // submatch guesses, such that non-bruteforce submatches over the same [i..j] take precedence.
     const min_guesses = aMatch.token.length === 1
           ? this.MIN_SUBMATCH_GUESSES_SINGLE_CHAR + 1
           : this.MIN_SUBMATCH_GUESSES_MULTI_CHAR + 1;
     return Math.max(guesses, min_guesses);
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   repeatGuesses(aMatch) {
     return aMatch.base_guesses * aMatch.repeat_count;
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   sequenceGuesses(aMatch) {
     const first_chr = aMatch.token.charAt(0).toLowerCase();
-    const best_guesses = 0;
+    // lower guesses for obvious starting points
+    let base_guesses = 0;
     if (first_chr == "a"
         || first_chr == "z"
         || first_chr == "0"
         || first_chr == "1"
         || first_chr == "9") {
-      best_guesses = 4;
+      base_guesses = 4;
     } else {
       if (first_chr.match(/\d/)) {
+        // digits
         base_guesses = 10;
       } else {
+        // could give a higher base for uppercase,
+        // assigning 26 to both upper and lower sequences is more conservative.
         base_guesses = 26;
       }
     }
 
     if (!aMatch.ascending) {
-      base_guesses *= 2;
+      // need to try a descending sequence in addition to every ascending sequence ->
+      // 2x guesses
+      base_guesses *= 2
     }
     return base_guesses * aMatch.token.length;
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   regexGuesses(aMatch) {
     const char_class_bases = {
-        alpha_lower: 26,
-        alpha_upper: 26,
-        alpha: 52,
+        alpha_lower:  26,
+        alpha_upper:  26,
+        alpha:        52,
         alphanumeric: 62,
-        digits: 10,
-        symbols: 33
+        digits:       10,
+        symbols:      33
       };
 
     if (match.regex_name in char_class_bases) {
@@ -296,24 +429,38 @@ class ZxcvbnScoring {
 
     switch (aMatch.regex_name) {
       case 'recent_year':
-        year_space = Math.abs(parseInt(aMatch.regex_match[0]) - this.REFERENCE_YEAR);
-        year_space = Math.max(year_space, this.MIN_YEAR_SPACE);
-        return year_space;
+        {
+          // conservative estimate of year space: num years from REFERENCE_YEAR.
+          // if year is close to REFERENCE_YEAR, estimate a year space of MIN_YEAR_SPACE.
+          let year_space = Math.abs(parseInt(aMatch.regex_match[0]) - this.REFERENCE_YEAR);
+          year_space = Math.max(year_space, this.MIN_YEAR_SPACE);
+          return year_space;
+        }
 
       default:
         throw "ZxcvbnScoring:regexGuesses: unknown regex name";
     }
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   dateGuesses(aMatch) {
+    // base guesses: (year distance from REFERENCE_YEAR) * num_days * num_years
     const year_space = Math.max(Math.abs(aMatch.year - this.REFERENCE_YEAR), this.MIN_YEAR_SPACE);
     let guesses = year_space * 365;
     if (aMatch.separator) {
+      // add factor of 4 for separator selection (one of ~4 choices)
       guesses *= 4;
     }
     return guesses;
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   spatialGuesses(aMatch) {
     const ref = aMatch.graph;
     const isAlphaKeyboard =  (ref === "qwerty" || ref === "dvorak" || ref === "azerty");
@@ -324,6 +471,7 @@ class ZxcvbnScoring {
     const L = aMatch.token.length;
     const t = aMatch.turns;
 
+    // estimate the number of possible patterns w/ length L or less with t turns or less.
     for (let i = 2; i <= L; i++) {
       const possible_turns = Math.min(t, i - 1);
       for (let j = 1; j <= possible_turns; j++) {
@@ -331,9 +479,12 @@ class ZxcvbnScoring {
       }
     }
 
+    // add extra guesses for shifted keys. (% instead of 5, A instead of a.)
+    // math is similar to extra guesses of l33t substitutions in dictionary matches.
     if (aMatch.shifted_count) {
       const S = aMatch.shifted_count;
-      const U = aMatch.token.length - aMatch.shifted_count
+      // # unshifted count
+      const U = aMatch.token.length - S;
       if (!S || !U) {
         guesses *= 2;
       } else {
@@ -348,7 +499,12 @@ class ZxcvbnScoring {
     return guesses;
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   dictionaryGuesses(aMatch) {
+    // keep these as properties for display purposes
     aMatch.base_guesses = aMatch.rank;
     aMatch.uppercase_variations = this.uppercaseVariations(aMatch);
     aMatch.l33t_variations = this.l33tVariations(aMatch);
@@ -356,18 +512,28 @@ class ZxcvbnScoring {
     return aMatch.base_guesses * aMatch.uppercase_variations * aMatch.l33t_variations * reversed_variations;
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   uppercaseVariations(aMatch) {
     const word = aMatch.token;
     if (word.match(this.ALL_LOWER) || word.toLowerCase() === word) {
       return 1;
     }
 
+    // a capitalized word is the most common capitalization scheme,
+    // so it only doubles the search space (uncapitalized + capitalized).
+    // allcaps and end-capitalized are common enough too, underestimate as 2x factor to be safe.
     if (word.match(this.START_UPPER)
         || word.match(this.END_UPPER)
         || word.match(this.ALL_UPPER)) {
       return 2;
     }
 
+    // otherwise calculate the number of ways to capitalize U+L uppercase+lowercase letters
+    // with U uppercase letters or less. or, if there's more uppercase than lower (for eg. PASSwORD),
+    // the number of ways to lowercase U+L letters with L lowercase letters or less.
     const matchUpperAlpha = word.match( /[A-Z]/g );
     const U = matchUpperAlpha ? matchUpperAlpha.length : 0;
     const matchLowerAlpha = word.match( /[a-z]/g );
@@ -381,6 +547,10 @@ class ZxcvbnScoring {
     return variations;
   }
 
+  /*
+   * @param {Object} aMatch
+   * @returns {number}
+   */
   l33tVariations(aMatch) {
     if (!aMatch.l33t) {
       return 1;
@@ -390,12 +560,18 @@ class ZxcvbnScoring {
     const chrs = aMatch.token.toLowerCase().split('');
     for (let subbed in aMatch.sub) {
       const unsubbed = aMatch.sub[subbed];
+      // lower-case match.token before calculating: capitalization shouldn't affect l33t calc.
       const S = chrs.filter(c => c == subbed).length;
       const U = chrs.filter(c => c == unsubbed).length;
 
       if (!S || !U) {
+        // for this sub, password is either fully subbed (444) or fully unsubbed (aaa)
+        // treat that as doubling the space (attacker needs to try fully subbed chars in addition to
+        // unsubbed.)
         variations *= 2;
       } else {
+        // this case is similar to capitalization:
+        // with aa44a, U = 3, S = 2, attacker needs to try unsubbed + one sub + two subs
         const p = Math.min(U, S);
         let possibilities = 0;
         for (let i = 1; i <= p; i++) {
