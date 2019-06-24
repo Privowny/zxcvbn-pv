@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>test zxcvbn-pv</title>
+    <script type="application/x-javascript" src="adjacency_graphs.js"></script>
+    <script type="application/x-javascript" src="feedback.js"></script>
+    <script type="application/x-javascript" src="frequency_lists.js"></script>
+    <script type="application/x-javascript" src="matching.js"></script>
+    <script type="application/x-javascript" src="scoring.js"></script>
+    <script type="application/x-javascript" src="time_estimates.js"></script>
+    <script type="application/x-javascript" src="locales.js"></script>
+    <script type="application/x-javascript" src="zxcvbn.js"></script>
+
+    <script type="application/x-javascript" src="haveibeenpwned.js"></script>
+    <script>
+    
+    let zxcvbn = null;
+    function Startup() {
+      zxcvbn = new Zxcvbn("fr");
+      document.getElementById("password")
+              .addEventListener("input", () => {doit();}, false);
+    }
+
+    async function doit() {
+      const password = document.getElementById("password").value;
+      if (!password) {
+        document.getElementById("leaked").style.display = "none";
+        document.getElementById("weak").style.display = "none";
+        document.getElementById("good").style.display = "none";
+        document.getElementById("strong").style.display = "none";
+        document.getElementById("rv").textContent = "";
+        return;
+      }
+
+      const result = await zxcvbn.evaluate(password);
+      //document.getElementById("rv").textContent = JSON.stringify(result, null, 2);
+      switch (result.score) {
+        case -1:
+          document.getElementById("leaked").style.display = "inline-block";
+          document.getElementById("weak").style.display = "none";
+          document.getElementById("good").style.display = "none";
+          document.getElementById("strong").style.display = "none";
+          break;
+        case 0:
+        case 1:
+        case 2:
+          document.getElementById("leaked").style.display = "inline-block";
+          document.getElementById("weak").style.display = "inline-block";
+          document.getElementById("good").style.display = "none";
+          document.getElementById("strong").style.display = "none";
+          break;
+        case 3:
+          document.getElementById("leaked").style.display = "inline-block";
+          document.getElementById("weak").style.display = "inline-block";
+          document.getElementById("good").style.display = "inline-block";
+          document.getElementById("strong").style.display = "none";
+          break;
+        case 4:
+          document.getElementById("leaked").style.display = "inline-block";
+          document.getElementById("weak").style.display = "inline-block";
+          document.getElementById("good").style.display = "inline-block";
+          document.getElementById("strong").style.display = "inline-block";
+          break;
+      }
+
+      document.getElementById("rv").textContent = result.feedback.suggestions.join("\n");
+    }
+    </script>
+    <style>
+	    #password {
+		    font-size: 16px;
+		    width: 240px;
+	    }
+	    #bars {
+        margin: 0px;
+	    }
+	    #bars > span {
+	      width: 50px;
+	      margin-left: 5px;
+	      margin-right: 5px;
+	      height: 4px;
+	      display: none;
+	    }
+      #leaked { background-color: black }
+      #weak { background-color: red }
+      #good { background-color: orange }
+      #strong { background-color: green }
+
+      #rv {
+        margin-bottom: 0px;
+      }
+    </style>
+  </head>
+  <body onload="Startup()">
+    <p>Enter a password to test:</p><p><input type="text" id="password"></p>
+    <p id="bars"><span id="leaked"> </span><span id="weak"> </span><span id="good"> </span><span id="strong"> </span></p>
+    <pre id="rv"></pre>
+  </body>
+</html>
