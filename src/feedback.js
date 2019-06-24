@@ -26,11 +26,7 @@ class ZxcvbnFeedback {
   }
 
   getFeedback(aScore, aSequence) {
-    if (typeof aScore !== "number" || !Array.isArray(aSequence)) {
-      throw "ZxcvbnFeedback:getFeedback: wrong argument type";
-    }
-
-    if (!aSequence.length) {
+     if (!aSequence.length) {
       return this.buildFeedback("", ["useFewWords", "noSymbolsNeeded"]);
     }
 
@@ -41,10 +37,12 @@ class ZxcvbnFeedback {
     const longestMatch = aSequence[0];
     const ref = aSequence.slice(1);
 
-    ref.forEach(aMatch => {
-      if (aMatch.token.length > longestMatch.token.length)
-        longestMatch = aMatch;
-    });
+    for (let i = 0; i < ref.length; i++) {
+      const match = ref[i];
+      if (match.token.length > longestMatch.token.length) {
+        longestMatch = match;
+      }
+    }
 
     const feedback = this.getMatchFeedback(longestMatch, aSequence.length === 1);
     const extraFeedback = "moreWords";
@@ -90,6 +88,8 @@ class ZxcvbnFeedback {
 
       default: break;
     }
+
+    return this.buildFeedback();
   }
 
   getDictionaryMatchFeedback(aMatch, aIsSoleMatch) {
@@ -103,7 +103,7 @@ class ZxcvbnFeedback {
             warning = "top100Password";
           else
             warning = "veryCommonPassword";
-        } else if (aMatch.guessesLog10 <= 4) {
+        } else if (aMatch.guesses_log10 <= 4) {
           warning = "commonPassword;"
         }
         break;

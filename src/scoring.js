@@ -1,5 +1,5 @@
 /*
- * Scoring class for zxcvbn-pv
+ * @CLASS Scoring class for zxcvbn-pv
  */
 class ZxcvbnScoring {
 
@@ -141,7 +141,9 @@ class ZxcvbnScoring {
     const n = aPassword.length;
 
     // partition matches into sublists according to ending index j
-    const matches_by_j = new Array(n).fill([]);
+    const matches_by_j = new Array(n);
+    for (let i = 0; i < n; i++)
+      matches_by_j[i] = [];
 
     aMatches.forEach((aMatch) => {
       matches_by_j[aMatch.j].push(aMatch);
@@ -154,18 +156,26 @@ class ZxcvbnScoring {
       });
     });
 
+    const fillArrayWithEmptyObject = (aArray) => {
+      for (let i = 0; i < aArray.length; i++)
+        aArray[i] = {};
+    }
+
     const optimal = {
         // optimal.m[k][l] holds final match in the best length-l match sequence covering the
         // password prefix up to k, inclusive.
         // if there is no length-l sequence that scores better (fewer guesses) than
         // a shorter match sequence spanning the same prefix, optimal.m[k][l] is undefined.
-        m:  (new Array(n)).fill({}),
+        m:  new Array(n),
         // same structure as optimal.m -- holds the product term Prod(m.guesses for m in sequence).
         // optimal.pi allows for fast (non-looping) updates to the minimization function.
-        pi: (new Array(n)).fill({}),
+        pi: new Array(n),
         // same structure as optimal.m -- holds the overall metric.
-        g:  (new Array(n)).fill({})
+        g:  new Array(n)
     };
+    fillArrayWithEmptyObject(optimal.m);
+    fillArrayWithEmptyObject(optimal.pi);
+    fillArrayWithEmptyObject(optimal.g);
 
     // helper: considers whether a length-l sequence ending at match m is better (fewer guesses)
     // than previously encountered sequences, updating state if so.
@@ -176,6 +186,10 @@ class ZxcvbnScoring {
         // we're considering a length-l sequence ending with match m:
         // obtain the product term in the minimization function by multiplying m's guesses
         // by the product of the length-(l-1) sequence ending just before m, at m.i - 1.
+        if (aMatch.i == 1 || !optimal.pi[aMatch.i - 1]) {
+          let a = 0;
+          a = 1;
+        }
         pi *= optimal.pi[aMatch.i - 1][aLength - 1];
       }
 
@@ -211,26 +225,27 @@ class ZxcvbnScoring {
       let m = makeBruteforceMatch(0, k);
       update(m, 1);
 
-      for (let i = 0; i < k; i++) {
+      let u, ref;
+      // WARNING: the following line is ugly but does matter because k can be 0, below the initial
+      // value of i. In that case, the array is browsed in descending order from 1 to 0...
+      for (let i = u = 1, ref = k; 1 <= ref ? u <= ref : u >= ref; i = 1 <= ref ? ++u : --u) {
         // generate k bruteforce matches, spanning from (i=1, j=k) up to (i=k, j=k).
         // see if adding these new matches to any of the sequences in optimal[i-1]
         // leads to new bests.
         const match = makeBruteforceMatch(i, k);
         const ref = optimal.m[i - 1];
-        if (ref) {
-          Object.entries(ref).forEach((aValue) => {
-            // corner: an optimal sequence will never have two adjacent bruteforce matches.
-            // it is strictly better to have a single bruteforce match spanning the same region:
-            // same contribution to the guess product with a lower length.
-            // --> safe to skip those cases.
-            if (aValue[1].pattern == 'bruteforce') {
-              return;
-            }
-
-            // try adding m to this length-l sequence.
-            const l = parseInt(aValue[0]);
-            update(m, l + 1);
-          });
+        for (let l in ref) {
+          const last_m = ref[l];
+          l = parseInt(l);
+          // corner: an optimal sequence will never have two adjacent bruteforce matches.
+          // it is strictly better to have a single bruteforce match spanning the same region:
+          // same contribution to the guess product with a lower length.
+          // --> safe to skip those cases.
+          if (last_m.pattern == "bruteforce") {
+            continue;
+          }
+          // try adding m to this length-l sequence.
+          update(match, l + 1);
         }
       }
     }
@@ -239,7 +254,7 @@ class ZxcvbnScoring {
     const makeBruteforceMatch = (i, j) => {
       return {
         pattern: "bruteforce",
-        token: aPassword.slice(i, j + 1),
+        token: aPassword.slice(i, j + 1 ),
         i: i,
         j: j
       };

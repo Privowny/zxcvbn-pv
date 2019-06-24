@@ -1,5 +1,15 @@
+/*
+ * @CLASS Scoring class for zxcvbn-pv
+ */
 class ZxcvbnMatching {
 
+  /*
+   * @constructor
+   *
+   * @param {ZxcvnFrequencyLists} aFrequencyLists
+   * @param {ZxcvbnAdjacencyGraphs} aAdjacencyGraphs
+   * @param {ZxcvbnScoring} aScoring
+   */
   constructor(aFrequencyLists, aAdjacencyGraphs, aScoring) {
     this.frequencyLists = aFrequencyLists;
     this.adjacencyGraphs = aAdjacencyGraphs;
@@ -57,23 +67,42 @@ class ZxcvbnMatching {
     this.MAX_DELTA = 5;
   }
 
+  /*
+   * @param {Array} aOrderedList
+   * @returns {Object}
+   */
   buildRankedDict(aOrderedList) {
     const rv = {};
     for (let i = 0; i < aOrderedList.length; i++) {
+      // # rank starts at 1, not 0
       rv[ aOrderedList[i] ] = i + 1;
     }
 
     return rv;
   }
 
+  /*
+   * @param {Object} aObj
+   * @returns {boolean}
+   */
   empty(aObj) {
-    return (Object.keys(aObj).length === 0);
+    return !aObj || !Object.keys(aObj).length;
   }
 
+  /*
+   * @param {Array} aList1
+   * @param {Array} aList2
+   * @returns {Array}
+   */
   extend (aList1, aList2) {
     return aList1.push.apply(aList1, aList2);
   }
 
+  /*
+   * @param {string} aString
+   * @param {Array} aCharMap
+   * @returns {string}
+   */
   translate(aString, aCharMap) {
     let rv = "";
     for (let i = 0; i < aString.length; i++) {
@@ -89,16 +118,34 @@ class ZxcvbnMatching {
     return rv;
   }
 
+  /*
+   * @param {number} aN
+   * @param {number} aM
+   * @returns {number}
+   */
   mod(aN, aM) {
+    // # mod impl that works for negative numbers
     return ((aN % aM) + aM) % aM;
   }
 
+  /*
+   * @param {Array} aMatches
+   * @returns {Array}
+   */
   sorted(aMatches) {
     return aMatches.sort((m1, m2) => {
+      // sort on i primary, j secondary
       return (m1.i - m2.i) || (m1.j - m2.j);
     });
   }
 
+  // ------------------------------------------------------------------------------
+  // omnimatch -- combine everything ----------------------------------------------
+  // ------------------------------------------------------------------------------
+  /*
+   * @param {string} aPassword
+   * @returns {Array}
+   */
   omnimatch(aPassword) {
     const matchers = [
       this.dictionaryMatch,
@@ -115,12 +162,22 @@ class ZxcvbnMatching {
     matchers.forEach((aMatcher) => {
       try {
         this.extend(matches, aMatcher.call(this, aPassword));
-      } catch(e) {}
+      } catch(e) {
+        console.error("ZxcvbnMatching:omnimatch: " + e);
+      }
     });
 
     return this.sorted(matches);
   }
 
+  // -------------------------------------------------------------------------------
+  //  dictionary match (common passwords, english, last names, etc) ----------------
+  // -------------------------------------------------------------------------------
+  /*
+   * @param {string} aPassword
+   * @param {Object} aRankedDictionaries
+   * @returns {Array}
+   */
   dictionaryMatch(aPassword, aRankedDictionaries) {
     if (!aRankedDictionaries)
       aRankedDictionaries = this.RANKED_DICTIONARIES;
@@ -140,7 +197,7 @@ class ZxcvbnMatching {
               pattern:        "dictionary",
               i:               i,
               j:               j,
-              token:           password.slice(i, j + 1),
+              token:           aPassword.slice(i, j + 1),
               matched_word:    word,
               rank:            rank,
               dictionary_name: dictionaryName,
@@ -155,10 +212,19 @@ class ZxcvbnMatching {
     return this.sorted(matches);
   }
 
+  /*
+   * @param {Array} aOrderedList
+   *
+   */
   setUserInputDictionary(aOrderedList) {
-    return this.RANKED_DICTIONARIES['user_inputs'] = this.buildRankedDict(aOrderedList.slice());
+    this.RANKED_DICTIONARIES['user_inputs'] = this.buildRankedDict(aOrderedList.slice());
   }
 
+  /*
+   * @param {string} aPassword
+   * @param {Object} aRankedDictionaries
+   * @returns {Array}
+   */
   reverseDictionaryMatch(aPassword, aRankedDictionaries) {
     if (!aRankedDictionaries)
       aRankedDictionaries = this.RANKED_DICTIONARIES;
@@ -166,8 +232,10 @@ class ZxcvbnMatching {
     const reversedPassword = aPassword.split('').reverse().join('');
     const matches = this.dictionaryMatch(reversedPassword, aRankedDictionaries);
     matches.forEach((aMatch) => {
+      //  # reverse back
       aMatch.token = aMatch.token.split('').reverse().join('');
       aMatch.reversed = true;
+      // map coordinates back to original string
       aMatch.i = aPassword.length - 1 - aMatch.j;
       aMatch.j = aPassword.length - 1 - aMatch.i;
     });
@@ -175,6 +243,11 @@ class ZxcvbnMatching {
     return this.sorted(matches);
   }
 
+  /*
+   * @param {string} aPassword
+   * @param {Object} aRankedDictionaries
+   * @returns {Array}
+   */
   l33tMatch(aPassword, aRankedDictionaries, aL33tTable) {
     if (!aRankedDictionaries)
       aRankedDictionaries = this.RANKED_DICTIONARIES;
@@ -226,6 +299,12 @@ class ZxcvbnMatching {
     }));
   }
 
+  // makes a pruned copy of l33t_table that only includes password's possible substitutions
+  /*
+   * @param {string} aPassword
+   * @param {Object} aTable
+   * @returns {Object}
+   */
   relevantL33tSubtable(aPassword, aTable) {
     const passwordChars = {};
     for (let i = 0; i < aPassword.length; i++) {
@@ -239,7 +318,7 @@ class ZxcvbnMatching {
 
       for (let p = 0; p < subs.length; p++) {
         const sub = subs[p];
-        if (sub in passwordChars) {
+        if (passwordChars[sub]) {
           relevantSubs.push(sub);
         }
       }
@@ -252,11 +331,16 @@ class ZxcvbnMatching {
     return subtable;
   }
 
+  // returns the list of possible 1337 replacement dictionaries for a given password
+  /*
+   * @param {Object} aTable
+   * @returns {Array}
+   */
   enumerateL33tSubs(aTable) {
     const keys = Object.keys(aTable);
-    const subs = [[]];
+    let subs = [[]];
 
-    function dedup(aSubs) {
+    const dedup = (aSubs) => {
       const deduped = [];
       const members = {};
 
@@ -277,48 +361,48 @@ class ZxcvbnMatching {
       return deduped;
     }
 
-    function helper(aKeys) {
+    const helper = (aKeys) => {
       if (!aKeys.length)
         return;
 
       const firstKey = aKeys[0];
       const restKeys = aKeys.slice(1);
       const nextSubs = [];
-      const ref = aTable[firstKey];
 
-      for (let i = 0; i <= ref.length; i++) {
+      const ref = aTable[firstKey];
+      for (let i = 0; i < ref.length; i++) {
         const l33tChar = ref[i];
         for (let j = 0; j < subs.length; j++) {
           const sub = subs[j];
           let dupL33tIndex = -1;
           for (let k = 0; k < sub.length; k++) {
             if (sub[k][0] == l33tChar) {
-              dupL33tIndex = i;
+              dupL33tIndex = k;
               break;
             }
           }
 
           if (dupL33tIndex == -1) {
-            next_subs.push( sub.concat([[l33tChar, firstKey]]) );
+            nextSubs.push( sub.concat([[l33tChar, firstKey]]) );
           } else {
             let sub_alternative = sub.slice(0);
             sub_alternative.splice(dupL33tIndex, 1);
             sub_alternative.push([l33tChar, firstKey]);
-            next_subs.push(sub);
-            next_subs.push(sub_alternative);
+            nextSubs.push(sub);
+            nextSubs.push(sub_alternative);
           }
         }
       }
 
-      subs = dedup(next_subs);
+      subs = dedup(nextSubs);
       return helper(restKeys);
     }
 
     helper(keys);
 
+    // # convert from assoc lists to dicts
     const subDicts = [];
-    for (let i = 0; i < subs.length; i++) {
-      const sub = subs[i];
+    subs.forEach((sub) => {
       const subDict = {};
       for (let j = 0; j < sub.length; j++) {
         const l33tChar = sub[j][0];
@@ -327,11 +411,20 @@ class ZxcvbnMatching {
       }
 
       subDicts.push(subDict);
-    }
+    });
 
     return subDicts;
   }
 
+
+  // ------------------------------------------------------------------------------
+  // spatial match (qwerty/dvorak/keypad) -----------------------------------------
+  // ------------------------------------------------------------------------------
+  /*
+   * @param {string} aPassword
+   * @param {Object | null} aGraphs
+   * @returns {Array}
+   */
   spatialMatch(aPassword, aGraphs) {
     if (!aGraphs)
       aGraphs = this.GRAPHS;
@@ -349,7 +442,9 @@ class ZxcvbnMatching {
 
   spatialMatchHelper(aPassword, aGraph, aGraphName) {
     const matches = [];
-    let adj, adjacents, curChar, curDirection, found, foundDirection, i = 0, j, lastDirection, len1, o, prevChar, shiftedCount, turns;
+    let i = 0;
+
+    let adj, adjacents, curChar, curDirection, found, foundDirection, j, lastDirection, len1, o, prevChar, shiftedCount, turns;
 
     while (i < aPassword.length - 1) {
       j = i + 1;
@@ -415,11 +510,11 @@ class ZxcvbnMatching {
     const lazyAnchored = /^(.+?)\1+$/;
     let lastIndex = 0;
 
-    while (lastIndew < aPassword.length) {
+    while (lastIndex < aPassword.length) {
       lazy.lastIndex = lastIndex;
       greedy.lastIndex = lastIndex;
 
-      const greedyMatch = greedy.match(aPassword);
+      const greedyMatch = greedy.exec(aPassword);
       const lazyMatch   = lazy.exec(aPassword);
 
       if (!greedyMatch) {
@@ -457,12 +552,12 @@ class ZxcvbnMatching {
       return [];
     }
 
-    function update(i, j, delta) {
+    const update = (i, j, delta) => {
       const ref = Math.abs(delta);
 
       if (j - i > 1 || ref === 1) {
         if ((0 < ref && ref <= this.MAX_DELTA)) {
-          const token = password.slice(i, +j + 1 || 9e9);
+          const token = aPassword.slice(i, +j + 1 || 9e9);
           let sequenceName, sequenceSpace;
 
           if (/^[a-z]+$/.test(token)) {
@@ -526,6 +621,7 @@ class ZxcvbnMatching {
     for (let name in aRegExps) {
       const r = aRegExps[name];
       r.lastIndex = 0;
+      let match;
       while (match = r.exec(aPassword)) {
         const token = match[0];
         matches.push({
@@ -553,7 +649,7 @@ class ZxcvbnMatching {
           break;
         }
 
-        const token = aPassword.slice(i, J + 1);
+        const token = aPassword.slice(i, j + 1);
         if (!maybeDateNoSeparator.exec(token)) {
           continue;
         }
@@ -616,7 +712,7 @@ class ZxcvbnMatching {
           break;
         }
 
-        const token = aPassword.splice(i, j + 1);
+        const token = aPassword.slice(i, j + 1);
         const match = maybeDateWithSeparator.exec(token);
         if (!match) {
           continue;
