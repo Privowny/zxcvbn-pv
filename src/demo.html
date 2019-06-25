@@ -30,6 +30,7 @@
         document.getElementById("good").style.display = "none";
         document.getElementById("strong").style.display = "none";
         document.getElementById("rv").textContent = "";
+        document.getElementById("json").textContent = "";
         return;
       }
 
@@ -64,7 +65,8 @@
           break;
       }
 
-      document.getElementById("rv").textContent = result.feedback.suggestions.join("\n");
+      document.getElementById("rv").textContent = result.feedback.warning + "\n" + result.feedback.suggestions.join("\n");
+      document.getElementById("json").textContent = JSON.stringify(result, null, 2);
     }
     </script>
     <style>
@@ -89,12 +91,14 @@
 
       #rv {
         margin-bottom: 0px;
+        white-space: pre;
       }
     </style>
   </head>
   <body onload="Startup()">
     <p>Enter a password to test:</p><p><input type="text" id="password"></p>
     <p id="bars"><span id="leaked"> </span><span id="weak"> </span><span id="good"> </span><span id="strong"> </span></p>
-    <pre id="rv"></pre>
+    <p id="rv"></p>
+    <pre id="json"></pre>
   </body>
 </html>
