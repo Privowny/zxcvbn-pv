@@ -29,7 +29,7 @@ class ZxcvbnL10N {
         reversedWordsTooEasy: "Écrire à l'envers n'augmente pas la sûreté",
         predictableSubstitutions: "Des substitutions prévisibles comme '@' pour 'a' n'aident pas vraiment",
 
-        leaked: "Ce mot de passe a fuité par le passé et est donc dangereux d'utilisation",
+        leaked: "Ce mot de passe a fuité par le passé et est donc dangereux à utiliser !",
 
         lessThanASecond: "Moins d'une seconde...",
         second: "seconde",
@@ -45,9 +45,7 @@ class ZxcvbnL10N {
         year: "année",
         years: "années",
         century: "un siècle",
-        centuries: "des siècles",
-
-        leaked: "Dangereux ! A fuité dans des bases publiques de mots de passe !"
+        centuries: "des siècles"
       };
       break;
 
@@ -79,7 +77,7 @@ class ZxcvbnL10N {
         reversedWordsTooEasy: "Reversed words aren't much harder to guess",
         predictableSubstitutions: "Predictable substitutions like '@' instead of 'a' don't help very much",
 
-        leaked: "This password has leaked in the past and is then dangerous to use",
+        leaked: "This password has leaked in the past and is then dangerous to use!",
 
         lessThanASecond: "Less than a second...",
         second: "second",
@@ -95,9 +93,7 @@ class ZxcvbnL10N {
         year: "year",
         years: "years",
         century: "century",
-        centuries: "centuries",
-
-        leaked: "Dangerous ! Has leaked in public databases in the past !"
+        centuries: "centuries"
       };
       break;
     }
