@@ -259,8 +259,9 @@ class ZxcvbnMatching {
       aMatch.token = aMatch.token.split('').reverse().join('');
       aMatch.reversed = true;
       // map coordinates back to original string
+      const i = aMatch.i;
       aMatch.i = aPassword.length - 1 - aMatch.j;
-      aMatch.j = aPassword.length - 1 - aMatch.i;
+      aMatch.j = aPassword.length - 1 - i;
     });
 
     return this.sorted(matches);
@@ -544,7 +545,7 @@ class ZxcvbnMatching {
         break;
       }
 
-      let baseToken;
+      let baseToken, match;
       if (greedyMatch[0].length > lazyMatch[0].length) {
         match = greedyMatch;
         baseToken = lazyAnchored.exec(match[0])[1];
@@ -567,7 +568,11 @@ class ZxcvbnMatching {
         base_matches: baseMatches,
         repeat_count: match[0].length / baseToken.length
       });
+
+      lastIndex = match.index + match[0].length;
     }
+
+    return matches;
   }
 
   sequenceMatch(aPassword) {
