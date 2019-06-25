@@ -183,11 +183,11 @@ class ZxcvbnMatching {
 
     const matches = [];
     matchers.forEach((aMatcher) => {
-      try {
+      //try {
         this.extend(matches, aMatcher.call(this, aPassword));
-      } catch(e) {
+      /*} catch(e) {
         console.error("ZxcvbnMatching:omnimatch: " + e);
-      }
+      }*/
     });
 
     return this.sorted(matches);
@@ -705,7 +705,7 @@ class ZxcvbnMatching {
 
         let bestCandidate = candidates[0];
 
-        function metric(aCandidate) {
+        const metric = (aCandidate) => {
           return Math.abs(aCandidate.year - this.scoring.REFERENCE_YEAR);
         }
 
@@ -771,8 +771,8 @@ class ZxcvbnMatching {
 
     return this.sorted(matches.filter((aMatch) => {
       for (let i = 0; i < matches.length; i++) {
-        const otherMatch = matches[u];
-        if (match == otherMatch) {
+        const otherMatch = matches[i];
+        if (aMatch == otherMatch) {
           continue;
         }
 

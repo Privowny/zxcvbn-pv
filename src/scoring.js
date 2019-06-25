@@ -377,14 +377,14 @@ class ZxcvbnScoring {
         date:       this.dateGuesses
     };
 
-    try {
+    //try {
       const guesses = estimation_functions[aMatch.pattern].call(this, aMatch);
 
       aMatch.guesses = Math.max(guesses, min_guesses);
       aMatch.guesses_log10 = Math.log10(aMatch.guesses);
-    } catch(e) {
+    /*} catch(e) {
       console.error(e);
-    }
+    }*/
     return aMatch.guesses;
   }
 
@@ -461,7 +461,7 @@ class ZxcvbnScoring {
         symbols:      33
       };
 
-    if (match.regex_name in char_class_bases) {
+    if (aMatch.regex_name in char_class_bases) {
       return Math.pow(char_class_bases[aMatch.regex_name], aMatch.token.length);
     }
 
