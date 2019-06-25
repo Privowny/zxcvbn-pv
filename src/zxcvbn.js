@@ -30,6 +30,13 @@ class Zxcvbn {
   /*
    * Checks a password against HaveIBeenPwned and if the password is not
    * leaked, calls zxcvbn. Async.
+   * 
+   * See https://github.com/dropbox/zxcvbn/blob/master/README.md for more
+   * information
+   *
+   * A new score value was added: -1, indicating HaveIBeenPwned reports the
+   * password has leaked in a public database. It's then considered dangerous
+   * to use and reported as such.
    *
    * @param {string} aPassword - the password to check
    * @rapam {Array} aSanitizedInputs - an extra array of strings as disctionary
