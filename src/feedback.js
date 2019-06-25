@@ -57,7 +57,7 @@ class ZxcvbnFeedback {
       return this.buildFeedback();
     }
 
-    const longestMatch = aSequence[0];
+    let longestMatch = aSequence[0];
     const ref = aSequence.slice(1);
 
     for (let i = 0; i < ref.length; i++) {
