@@ -839,7 +839,7 @@ class ZxcvbnMatching {
     }
 
     for (let i = 0; i < possibleYearSplits.length; i++) {
-      const y = possibleYearSplits[i][0];
+      let y = possibleYearSplits[i][0];
       const rest = possibleYearSplits[i][1];
 
       const dm = this.mapIntsToDm(rest);
