@@ -3,21 +3,23 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <title>test zxcvbn-pv</title>
-    <script type="application/x-javascript" src="adjacency_graphs.js"></script>
-    <script type="application/x-javascript" src="feedback.js"></script>
-    <script type="application/x-javascript" src="frequency_lists.js"></script>
-    <script type="application/x-javascript" src="matching.js"></script>
-    <script type="application/x-javascript" src="scoring.js"></script>
-    <script type="application/x-javascript" src="time_estimates.js"></script>
-    <script type="application/x-javascript" src="locales.js"></script>
-    <script type="application/x-javascript" src="zxcvbn.js"></script>
+    <script type="application/x-javascript" src="src/adjacency_graphs.js"></script>
+    <script type="application/x-javascript" src="src/feedback.js"></script>
+    <script type="application/x-javascript" src="src/frequency_lists.js"></script>
+    <script type="application/x-javascript" src="src/matching.js"></script>
+    <script type="application/x-javascript" src="src/scoring.js"></script>
+    <script type="application/x-javascript" src="src/time_estimates.js"></script>
+    <script type="application/x-javascript" src="src/locales.js"></script>
+    <script type="application/x-javascript" src="src/zxcvbn.js"></script>
 
-    <script type="application/x-javascript" src="haveibeenpwned.js"></script>
+    <script type="application/x-javascript" src="src/haveibeenpwned.js"></script>
     <script>
     
     let zxcvbn = null;
+    let locale = "en";
+
     function Startup() {
-      zxcvbn = new Zxcvbn("fr");
+      zxcvbn = new Zxcvbn(locale);
       document.getElementById("password")
               .addEventListener("input", () => {doit();}, false);
     }
@@ -29,6 +31,7 @@
         document.getElementById("weak").style.display = "none";
         document.getElementById("good").style.display = "none";
         document.getElementById("strong").style.display = "none";
+        document.getElementById("score").textContent = "";
         document.getElementById("rv").textContent = "";
         document.getElementById("json").textContent = "";
         return;
@@ -42,6 +45,7 @@
           document.getElementById("weak").style.display = "none";
           document.getElementById("good").style.display = "none";
           document.getElementById("strong").style.display = "none";
+          document.getElementById("score").textContent = "DANGEROUS";
           break;
         case 0:
         case 1:
@@ -50,29 +54,42 @@
           document.getElementById("weak").style.display = "inline-block";
           document.getElementById("good").style.display = "none";
           document.getElementById("strong").style.display = "none";
+          document.getElementById("score").textContent = "WEAK";
           break;
         case 3:
           document.getElementById("leaked").style.display = "inline-block";
           document.getElementById("weak").style.display = "inline-block";
           document.getElementById("good").style.display = "inline-block";
           document.getElementById("strong").style.display = "none";
+          document.getElementById("score").textContent = "GOOD";
           break;
         case 4:
           document.getElementById("leaked").style.display = "inline-block";
           document.getElementById("weak").style.display = "inline-block";
           document.getElementById("good").style.display = "inline-block";
           document.getElementById("strong").style.display = "inline-block";
+          document.getElementById("score").textContent = "STRONG";
           break;
       }
 
       document.getElementById("rv").textContent = result.feedback.warning + "\n" + result.feedback.suggestions.join("\n");
       document.getElementById("json").textContent = JSON.stringify(result, null, 2);
     }
+
+    function ChangeLocale(aLocale) {
+      locale = aLocale;
+      zxcvbn = new Zxcvbn(locale);
+      doit();
+    }
     </script>
     <style>
-	    #password {
+	    #password, #score {
 		    font-size: 16px;
 		    width: 240px;
+	    }
+	    #score {
+	      margin: 0px;
+	      text-align: center;
 	    }
 	    #bars {
         margin: 0px;
@@ -96,8 +113,18 @@
     </style>
   </head>
   <body onload="Startup()">
-    <p>Enter a password to test:</p><p><input type="text" id="password"></p>
+    <p>
+      <label for="locale">Select locale for reports:</label>
+      <select id="locale" oninput="ChangeLocale(this.value)">
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+      </select>
+    </p>
+    <p>
+      <label for="password">Enter a password to test:</label> <input type="text" id="password">
+    </p>
     <p id="bars"><span id="leaked"> </span><span id="weak"> </span><span id="good"> </span><span id="strong"> </span></p>
+    <p id="score"></p>
     <p id="rv"></p>
     <pre id="json"></pre>
   </body>
