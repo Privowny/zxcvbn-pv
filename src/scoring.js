@@ -160,7 +160,7 @@ class ZxcvbnScoring {
    * @param {Array} aMatches - sequence of overlapping matches
    * @param {Array} aExcludeAdditive
    */
-  mostGuessableMatchSequence(aPassword, aMatches, aExcludeAdditive) {
+  mostGuessableMatchSequence(aPassword, aMatches, aExcludeAdditive = false) {
     const n = aPassword.length;
 
     // partition matches into sublists according to ending index j
