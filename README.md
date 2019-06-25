@@ -3,8 +3,6 @@
 
 **Warning** this is a work in progress and must not be used in production (yet)
 
-Demo at http://glazman.org/zxcvbn-pv/demo.html
-
 Bonuses:
 
 1. localized in english and french (see locales.js)
