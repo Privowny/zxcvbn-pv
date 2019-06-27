@@ -14,7 +14,7 @@ class HaveIBeenPwned {
     this.kHAVEIBEENPWED_PASSWORD_API_URL = "https://api.pwnedpasswords.com/range/";
 
     if (!aUserAgent) {
-      console.warning("HaveIBeenPwned::constructor: please do not use an empty User Agent string");
+      throw "HaveIBeenPwned::constructor: do not use an empty User Agent string";
     }
 
     this.userAgent = aUserAgent;
@@ -63,10 +63,8 @@ class HaveIBeenPwned {
 
     const requestDetails = {
       url : url,
+      headers: { "User-Agent": this.userAgent }
     };
-    if (this.userAgent) {
-      requestDetails.headers = { "User-Agent": this.userAgent };
-    }
 
     let rv = await this.request(requestDetails)
       .then((aPwnedList) => {
