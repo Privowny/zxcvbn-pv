@@ -6,18 +6,11 @@ class HaveIBeenPwned {
   /*
    * @constructor
    *
-   * @param {string} aUserAgent - User Agent string for calls to HaveIBeenPwned API
    */
-  constructor(aUserAgent) {
+  constructor() {
     // HaveIBeenPwned password API
     // Cf. https://haveibeenpwned.com/API/v2#PwnedPasswords
     this.kHAVEIBEENPWED_PASSWORD_API_URL = "https://api.pwnedpasswords.com/range/";
-
-    if (!aUserAgent) {
-      throw "HaveIBeenPwned::constructor: do not use an empty User Agent string";
-    }
-
-    this.userAgent = aUserAgent;
   }
 
   /*
@@ -62,8 +55,7 @@ class HaveIBeenPwned {
     const sha1Suffix = sha1.substr(5);
 
     const requestDetails = {
-      url : url,
-      headers: { "User-Agent": this.userAgent }
+      url : url
     };
 
     let rv = await this.request(requestDetails)
