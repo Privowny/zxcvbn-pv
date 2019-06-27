@@ -3,9 +3,22 @@
  */
 class HaveIBeenPwned {
 
-  // HaveIBeenPwned password API
-  // Cf. https://haveibeenpwned.com/API/v2#PwnedPasswords
-  get URL() { return "https://api.pwnedpasswords.com/range/"; }
+  /*
+   * @constructor
+   *
+   * @param {string} aUserAgent - User Agent string for calls to HaveIBeenPwned API
+   */
+  constructor(aUserAgent) {
+    // HaveIBeenPwned password API
+    // Cf. https://haveibeenpwned.com/API/v2#PwnedPasswords
+    this.kHAVEIBEENPWED_PASSWORD_API_URL = "https://api.pwnedpasswords.com/range/";
+
+    if (!aUserAgent) {
+      console.warning("HaveIBeenPwned::constructor: please do not use an empty User Agent string");
+    }
+
+    this.userAgent = aUserAgent;
+  }
 
   /*
    * Helper for XMLHttpRequest.
@@ -44,11 +57,18 @@ class HaveIBeenPwned {
     // compute SHA-1 digest
     const sha1 = (await this.digestSha1(aPassword)).toUpperCase();
     // form API url with first 5 chars of SHA-1 digest
-    const url = this.URL + sha1.substr(0, 5);
+    const url = this.kHAVEIBEENPWED_PASSWORD_API_URL + sha1.substr(0, 5);
     // preserve the rest
     const sha1Suffix = sha1.substr(5);
 
-    let rv = await this.request({url: url})
+    const requestDetails = {
+      url : url,
+    };
+    if (this.userAgent) {
+      requestDetails.headers = { "User-Agent": this.userAgent };
+    }
+
+    let rv = await this.request(requestDetails)
       .then((aPwnedList) => {
         // checks if the SHA-1 suffix is present in the answer
         const responseArray = aPwnedList.split("\r\n")

@@ -5,8 +5,12 @@ class Zxcvbn {
 
   /*
    * @constructor
+   *
+   * @param {string} aLocale - "en", "fr", etc
+   * @param {boolean} aDisableHaveIBeenPwned - true to disable calls to HaveIBeenPwned Password API
+   * @param {string} aUserAgent - User Agent string for calls to HaveIBeenPwned API
    */
-  constructor(aLocale) {
+  constructor(aLocale, aDisableHaveIBeenPwned = false, aUserAgent = "") {
     this.frequencyLists  = new ZxcvnFrequencyLists();
     this.adjacencyGraphs = new ZxcvbnAdjacencyGraphs();
     this.L10N            = new ZxcvbnL10N(aLocale);
@@ -15,7 +19,9 @@ class Zxcvbn {
     this.matching        = new ZxcvbnMatching(this.frequencyLists, this.adjacencyGraphs, this.scoring);
     this.feedback        = new ZxcvbnFeedback(this.scoring);
 
-    this.HaveIBeenPwned  = new HaveIBeenPwned();
+    this.HaveIBeenPwned  = aDisableHaveIBeenPwned
+                           ? null
+                           : new HaveIBeenPwned(aUserAgent);
   }
 
   /*
@@ -43,7 +49,9 @@ class Zxcvbn {
    */
   async evaluate(aPassword, aSanitizedInputs) {
     // check against HaveIBennPwned password API
-    let rv = await this.HaveIBeenPwned.check(aPassword);
+    let rv = this.HaveIBeenPwned
+             ? await this.HaveIBeenPwned.check(aPassword)
+             : null;
 
     // check against zxcvbn only if not leaked
     if (!rv) {
