@@ -183,11 +183,11 @@ class ZxcvbnMatching {
 
     const matches = [];
     matchers.forEach((aMatcher) => {
-      //try {
+      try {
         this.extend(matches, aMatcher.call(this, aPassword));
-      /*} catch(e) {
+      } catch(e) {
         console.error("ZxcvbnMatching:omnimatch: " + e);
-      }*/
+      }
     });
 
     return this.sorted(matches);
