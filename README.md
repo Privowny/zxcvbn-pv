@@ -9,5 +9,6 @@ Bonuses:
 2. internationalized (see frequency_lists.js for dictionaries and adjacency_graphs.js for keyboards). AZERTY fr-FR keyboard added. fr-FR ordered list of names and surnames added.
 3. checks password against HaveIBeenPwned before calling original zxcvbn matching/scoring. Reports a -1 score if password has leaked.
 4. cleaner JS
+5. added male_names, female_names, surnames and wikipedia lists of most used words for fr-FR
 
-TODO: frequency lists from fr-FR Wikipedia
+See demo.html file for usage.
