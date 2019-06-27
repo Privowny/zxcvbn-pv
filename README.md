@@ -11,4 +11,4 @@ Bonuses:
 4. cleaner JS
 5. added male_names, female_names, surnames and wikipedia lists of most used words for fr-FR
 
-See demo.html file for usage (warning, code uss `crypto.subtle` for SHA-1 digest and that can't be used, in Chrome, over http ; you must use it locally, inside a WebExtension or over https; Firefox has no such issue)
+See demo.html file for usage (warning, code uses `crypto.subtle` for SHA-1 digest and that can't be used, in Chrome, over http ; you must use it locally, inside a WebExtension or over https; Firefox has no such issue)
