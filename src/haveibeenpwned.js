@@ -10,7 +10,7 @@ class HaveIBeenPwned {
   constructor() {
     // HaveIBeenPwned password API
     // Cf. https://haveibeenpwned.com/API/v2#PwnedPasswords
-    this.kHAVEIBEENPWED_PASSWORD_API_URL = "https://api.pwnedpasswords.com/range/";
+    this.kHAVEIBEENPWNED_PASSWORD_API_URL = "https://api.pwnedpasswords.com/range/";
   }
 
   /*
@@ -50,7 +50,7 @@ class HaveIBeenPwned {
     // compute SHA-1 digest
     const sha1 = (await this.digestSha1(aPassword)).toUpperCase();
     // form API url with first 5 chars of SHA-1 digest
-    const url = this.kHAVEIBEENPWED_PASSWORD_API_URL + sha1.substr(0, 5);
+    const url = this.kHAVEIBEENPWNED_PASSWORD_API_URL + sha1.substr(0, 5);
     // preserve the rest
     const sha1Suffix = sha1.substr(5);
 
