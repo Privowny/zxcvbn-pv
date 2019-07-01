@@ -180,6 +180,7 @@ class ZxcvbnScoring {
     });
 
     const fillArrayWithEmptyObject = (aArray) => {
+      // we cannot rely on Array.fill() here or we'll reference n times the same object...
       for (let i = 0; i < aArray.length; i++)
         aArray[i] = {};
     }
