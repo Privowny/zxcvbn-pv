@@ -26,13 +26,10 @@
     async function doit() {
       const password = document.getElementById("password").value;
       if (!password) {
-        document.getElementById("leaked").style.display = "none";
-        document.getElementById("weak").style.display = "none";
-        document.getElementById("good").style.display = "none";
-        document.getElementById("strong").style.display = "none";
         document.getElementById("score").textContent = "";
         document.getElementById("rv").textContent = "";
         document.getElementById("json").textContent = "";
+        document.getElementById("bars").className = "";
         return;
       }
 
@@ -40,34 +37,22 @@
       //document.getElementById("rv").textContent = JSON.stringify(result, null, 2);
       switch (result.score) {
         case -1:
-          document.getElementById("leaked").style.display = "inline-block";
-          document.getElementById("weak").style.display = "none";
-          document.getElementById("good").style.display = "none";
-          document.getElementById("strong").style.display = "none";
           document.getElementById("score").textContent = "DANGEROUS";
+          document.getElementById("bars").className = "DANGEROUS";
           break;
         case 0:
         case 1:
         case 2:
-          document.getElementById("leaked").style.display = "inline-block";
-          document.getElementById("weak").style.display = "inline-block";
-          document.getElementById("good").style.display = "none";
-          document.getElementById("strong").style.display = "none";
           document.getElementById("score").textContent = "WEAK";
+          document.getElementById("bars").className = "WEAK";
           break;
         case 3:
-          document.getElementById("leaked").style.display = "inline-block";
-          document.getElementById("weak").style.display = "inline-block";
-          document.getElementById("good").style.display = "inline-block";
-          document.getElementById("strong").style.display = "none";
-          document.getElementById("score").textContent = "GOOD";
+           document.getElementById("score").textContent = "GOOD";
+           document.getElementById("bars").className = "GOOD";
           break;
         case 4:
-          document.getElementById("leaked").style.display = "inline-block";
-          document.getElementById("weak").style.display = "inline-block";
-          document.getElementById("good").style.display = "inline-block";
-          document.getElementById("strong").style.display = "inline-block";
-          document.getElementById("score").textContent = "STRONG";
+           document.getElementById("score").textContent = "STRONG";
+           document.getElementById("bars").className = "STRONG";
           break;
       }
 
@@ -94,16 +79,29 @@
         margin: 0px;
 	    }
 	    #bars > span {
-	      width: 50px;
-	      margin-left: 5px;
-	      margin-right: 5px;
+	      width: 70px;
 	      height: 4px;
 	      display: none;
 	    }
-      #leaked { background-color: black }
-      #weak { background-color: red }
-      #good { background-color: orange }
-      #strong { background-color: green }
+	    #bars > span:not(:last-child) {
+	      margin-right: 15px;
+	    }
+	    #bars.DANGEROUS > span {
+	      display: inline-block;
+	      background-color: black;
+	    }
+	    #bars.WEAK #bar1 {
+        display: inline-block;
+        background-color: red;
+      }
+      #bars.GOOD #bar1, #bars.GOOD #bar2 {
+        display: inline-block;
+        background-color: orange;
+      }
+     #bars.STRONG #bar1, #bars.STRONG #bar2,  #bars.STRONG #bar3 {
+        display: inline-block;
+        background-color: green;
+      }
 
       #rv {
         margin-bottom: 0px;
@@ -122,7 +120,7 @@
     <p>
       <label for="password">Enter a password to test:</label><br><input type="text" id="password">
     </p>
-    <p id="bars"><span id="leaked"> </span><span id="weak"> </span><span id="good"> </span><span id="strong"> </span></p>
+    <p id="bars"><span id="bar1"> </span><span id="bar2"> </span><span id="bar3"> </span></p>
     <p id="score"></p>
     <p id="rv"></p>
     <pre id="json"></pre>
