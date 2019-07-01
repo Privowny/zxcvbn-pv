@@ -14,33 +14,6 @@ class HaveIBeenPwned {
   }
 
   /*
-   * Helper for XMLHttpRequest.
-   *
-   * @param {Object} aObject - url (string), method (string), headers (string[]), body (any)
-   * @returns {Promise}
-   */
-  request(aObj) {
-    return new Promise((resolve, reject) => {
-        let xhr = new XMLHttpRequest();
-        xhr.open(aObj.method || "GET", aObj.url);
-        if (aObj.headers) {
-            Object.keys(aObj.headers).forEach(key => {
-                xhr.setRequestHeader(key, aObj.headers[key]);
-            });
-        }
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                resolve(xhr.response);
-            } else {
-                reject(xhr.statusText);
-            }
-        };
-        xhr.onerror = () => reject(xhr.statusText);
-        xhr.send(aObj.body);
-    });
-  };
-
-  /*
    * Checks a password against HaveIBeenPwned. Async.
    *
    * @param {string} aPassword - the password to check
@@ -54,23 +27,25 @@ class HaveIBeenPwned {
     // preserve the rest
     const sha1Suffix = sha1.substr(5);
 
-    const requestDetails = {
-      url : url
-    };
+    let rv = false;
 
-    let rv = await this.request(requestDetails)
-      .then((aPwnedList) => {
-        // checks if the SHA-1 suffix is present in the answer
-        const responseArray = aPwnedList.split("\r\n")
-                              .map(aValue => aValue.split(":"));
-        const leaked = responseArray.some(aEntry => aEntry[0] === sha1Suffix);
-        if (leaked) {
-          // it is...
-          return {
-            password: aPassword,
-            score: -1,
-            feedback: { warning: "leaked", suggestions: [] }
-          };
+    await fetch(url)
+      .then(async (aResponse) => {
+        if (aResponse.ok) {
+          await aResponse.text().then((aPwnedList) => {
+            // checks if the SHA-1 suffix is present in the answer
+            const responseArray = aPwnedList.split("\r\n")
+                                  .map(aValue => aValue.split(":"));
+            const leaked = responseArray.some(aEntry => aEntry[0] === sha1Suffix);
+            if (leaked) {
+              // it is...
+              rv = {
+                password: aPassword,
+                score: -1,
+                feedback: { warning: "leaked", suggestions: [] }
+              };
+            }
+          });
         }
       })
     .catch(error => {
