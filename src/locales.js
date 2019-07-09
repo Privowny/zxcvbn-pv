@@ -77,7 +77,7 @@ class ZxcvbnL10N {
         reversedWordsTooEasy: "Reversed words aren't much harder to guess.",
         predictableSubstitutions: "Predictable substitutions like '@' instead of 'a' don't help very much.",
 
-        leaked: "TThis password has been hacked, it is not safe. Please choose another one.",
+        leaked: "This password has been hacked, it is not safe. Please choose another one.",
 
         lessThanASecond: "Less than a second...",
         second: "second",
