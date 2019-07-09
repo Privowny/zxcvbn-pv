@@ -4,12 +4,12 @@ class ZxcvbnL10N {
       case "fr": this.locale = {
         useFewWords: "Utilisez quelques mots, évitez les phrases communes.",
         noSymbolsNeeded: "Inutile d'utiliser des chiffres, symboles ou majuscules.",
-        moreWords: "Ajoutez un mot ou deux. Préférez des mots rares.",
+        moreWords: "Ajoutez un mot ou deux. Préférez les mots rares.",
         straightKeyRows: "Des rangées de caractères sur le clavier sont faciles à deviner.",
         shortKeyboardPatterns: "Des caractères contigus sur le clavier sont facile à deviner.",
         longerKeyboardPattern: "Utilisez plus de caractères moins contigus.",
         aaaRepeats: "Des répétitions telles que 'aaa' sont faciles à deviner.",
-        abcabcRepeats: "Une répétition telle que 'abcabcabc' est à peine plus sûr que 'abc'.",
+        abcabcRepeats: "Une répétition telle que 'abcabcabc' est à peine plus sûre que 'abc'.",
         repeatedWords: "Évitez les mots ou caractères répétés.",
         sequencesTooEasy: "Les séquences telles que 'abc' ou '6543' sont faciles à deviner.",
         avoidSequences: "Évitez les séquences.",
@@ -17,8 +17,8 @@ class ZxcvbnL10N {
         avoidRecentYears: "Évitez les années récentes.",
         datesTooEasy: "Les dates sont faciles à deviner.",
         avoidDates: "Évitez les dates et années facilement associables à votre personne.",
-        top10Password: "C'est un des 10 mots de passe les plus communs !",
-        top100Password: "C'est un des 100 mots de passe les plus communs !",
+        top10Password: "C'est un des 10 mots de passe les plus courants !",
+        top100Password: "C'est un des 100 mots de passe les plus courants !",
         veryCommonPassword: "C'est un mot de passe très commun.",
         commonPassword: "C'est trop similaire à un mot de passe très commun.",
         soleWordTooEasy: "Un mot seul est bien trop facile à deviner.",
@@ -29,7 +29,7 @@ class ZxcvbnL10N {
         reversedWordsTooEasy: "Écrire à l'envers n'augmente pas la sûreté.",
         predictableSubstitutions: "Des substitutions prévisibles comme '@' pour 'a' n'aident pas vraiment.",
 
-        leaked: "Ce mot de passe a fuité par le passé et est donc dangereux à utiliser !",
+        leaked: "Ce mot de passe a été piraté, il est compromis. Choisissez-en un autre.",
 
         lessThanASecond: "Moins d'une seconde...",
         second: "seconde",
@@ -77,7 +77,7 @@ class ZxcvbnL10N {
         reversedWordsTooEasy: "Reversed words aren't much harder to guess.",
         predictableSubstitutions: "Predictable substitutions like '@' instead of 'a' don't help very much.",
 
-        leaked: "This password has leaked in the past and is therefore dangerous to use!",
+        leaked: "TThis password has been hacked, it is not safe. Please choose another one.",
 
         lessThanASecond: "Less than a second...",
         second: "second",
