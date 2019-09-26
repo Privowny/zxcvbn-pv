@@ -29,7 +29,7 @@ class ZxcvbnL10N {
         reversedWordsTooEasy: "Écrire à l'envers n'augmente pas la sûreté.",
         predictableSubstitutions: "Des substitutions prévisibles comme '@' pour 'a' n'aident pas vraiment.",
 
-        leaked: "Ce mot de passe a été piraté, il est compromis. Choisissez-en un autre.",
+        leaked: "Cette chaine de caractères est compromise d’après haveibeenpwned.com.",
 
         lessThanASecond: "Moins d'une seconde...",
         second: "seconde",
@@ -77,7 +77,7 @@ class ZxcvbnL10N {
         reversedWordsTooEasy: "Reversed words aren't much harder to guess.",
         predictableSubstitutions: "Predictable substitutions like '@' instead of 'a' don't help very much.",
 
-        leaked: "This password has been hacked, it is not safe. Please choose another one.",
+        leaked: "This sequence of characters has been reported hacked by haveibeenpwned.com, it is not safe.",
 
         lessThanASecond: "Less than a second...",
         second: "second",
